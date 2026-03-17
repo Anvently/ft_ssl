@@ -1,8 +1,5 @@
 #include <libft.h>
 
-// NBR_OPTIONS must be defined as the size of options_map
-extern int NBR_OPTIONS;
-extern t_opt_flag *options_map;
 extern const char *executable_name;
 
 static int print_valid_arguments(const char ***valids) {
@@ -87,14 +84,16 @@ int ft_options_err_incompatible_options(const char *option1,
 /// @param options
 /// @return ```2``` if unknown flag. ```-1``` if no error but what's remaining
 /// in arg should be considered as option argument and thus ignored.
-static int ft_parse_arg_short(char **next_arg, char *option,
+static int ft_parse_arg_short(struct s_options_parser_args *parser_args,
+                              char **next_arg, char *option,
                               t_options *options) {
+    t_opt_flag *options_map = parser_args->options_map;
     t_opt_flag *flag_info = NULL;
     int ret = 0;
 
     if (*option == '\0')
         return (0);
-    for (int i = 0; i < NBR_OPTIONS; i++) {
+    for (unsigned int i = 0; i < parser_args->options_map_len; i++) {
         if (options_map[i].short_id == *option) {
             flag_info = &options_map[i];
             break;
@@ -121,11 +120,12 @@ static int ft_parse_arg_short(char **next_arg, char *option,
     return ((*flag_info->handler)(options, NULL));
 }
 
-static int ft_parse_flag_list(char **next_arg, char *arg, t_options *options) {
+static int ft_parse_flag_list(struct s_options_parser_args *parser_args,
+                              char **next_arg, char *arg, t_options *options) {
     int ret = 0;
 
     for (int i = 0; arg[i]; i++) {
-        ret = ft_parse_arg_short(next_arg, arg + i, options);
+        ret = ft_parse_arg_short(parser_args, next_arg, arg + i, options);
         if (ret > 0)
             return (ERROR_INPUT);
         if (ret < 0)
@@ -159,15 +159,17 @@ static int ft_option_long_handle_arg(char **next_arg, t_opt_flag *flag_info,
 /// @param options
 /// @return ```-1``` if allocation error.
 /// ```2``` of input error
-static int ft_parse_option_long(char **next_arg, char *arg,
+static int ft_parse_option_long(struct s_options_parser_args *parser_args,
+                                char **next_arg, char *arg,
                                 t_options *options) {
     t_list *matches = NULL, *node;
+    t_opt_flag *options_map = parser_args->options_map;
     size_t end;
     int ret = 0;
 
     for (end = 0; arg[end] && arg[end] != '='; end++)
         ;
-    for (int i = 0; i < NBR_OPTIONS; i++) {
+    for (unsigned int i = 0; i < parser_args->options_map_len; i++) {
         if (options_map[i].long_id == NULL)
             continue;
         if (ft_strncmp(arg, options_map[i].long_id, end) == 0) {
@@ -196,39 +198,42 @@ int check_options(t_options *options) {
 }
 
 /// @brief Extract options in ```args``` and replaced them with ```NULL```.
-/// @param nbr
-/// @param args
+/// @param parser_args
 /// @param options
-/// @param arg_number if given, will receive nuber of non-options argument
 /// @return ```2``` if input error
 /// ```-1``` if allocatio error
-int ft_options_retrieve(int nbr, char **args, t_options *options,
-                        unsigned int *arg_number) {
+/// @note After a singleton ``--``, no subsequent option is parsed as option
+/// (and left as argument).
+int ft_options_retrieve(struct s_options_parser_args *parser_args,
+                        t_options *options) {
+    const unsigned int nbr_args = parser_args->nbr_argument;
+    char **args = parser_args->args;
     int ret = 0;
 
-    if (arg_number)
-        *arg_number = 0;
-    for (int i = 0; i < nbr; i++) {
-        if (args[i] == NULL)
+    for (unsigned int i = 0; i < nbr_args; i++) {
+        if (args[i] == NULL) { // Arg is option value (replaced by NULL)
+            parser_args->nbr_argument--;
             continue;
+        }
         if (args[i][0] == '-') {
+            // Singleton --
             if (args[i][1] == '-' && (ft_isspace(args[i][2]) || !args[i][2])) {
                 args[i] = NULL;
+                parser_args->nbr_argument--;
                 break;
-            } else if (args[i][1] == '-') {
+            } else if (args[i][1] == '-') { // Long option
                 if ((ret = ft_parse_option_long(
-                         (i + 1 == nbr ? NULL : &args[i + 1]), args[i] + 2,
-                         options)))
+                         parser_args, (i + 1 == nbr_args ? NULL : &args[i + 1]),
+                         args[i] + 2, options)))
                     return (ret);
-            } else {
+            } else { // Short option
                 if ((ret = ft_parse_flag_list(
-                         (i + 1 == nbr ? NULL : &args[i + 1]), args[i] + 1,
-                         options)))
+                         parser_args, (i + 1 == nbr_args ? NULL : &args[i + 1]),
+                         args[i] + 1, options)))
                     return (ret);
             }
+            parser_args->nbr_argument--;
             args[i] = NULL;
-        } else if (arg_number) {
-            (*arg_number)++;
         }
     }
     return (check_options(options));

@@ -469,7 +469,7 @@ char *insert_n_char(char *str, int start, int n, char c);
 
 // A data structure that will be given to the handler, containing for example
 // the list of enable flags
-typedef struct s_options t_options;
+typedef void t_options;
 
 enum ARG_TYPE { ARG_NONE, ARG_OPTIONNAL, ARG_REQUIRED };
 
@@ -480,8 +480,18 @@ typedef struct s_option_flag {
     int (*handler)(t_options *, char *);
 } t_opt_flag;
 
-int ft_options_retrieve(int nbr, char **args, t_options *options,
-                        unsigned int *dest_nbr_args);
+struct s_options_parser_args {
+    unsigned int options_map_len;
+    t_opt_flag *options_map;
+    char **args;
+    /* Value-result parameter. Caller provide the number of argument (argc - 1)
+       and the value is decremented for each non-argument encountered (option,
+       option value or '--') */
+    unsigned int nbr_argument;
+};
+
+int ft_options_retrieve(struct s_options_parser_args *parser_args,
+                        t_options *options);
 int ft_options_err_invalid_argument(const char *option, const char *arg,
                                     const char ***valids);
 int ft_options_err_ambiguous_argument(const char *option, const char *arg,

@@ -1,26 +1,35 @@
-#include <openssl.h>
+#include <ft_openssl.h>
 
-static const t_options default_opts = {
-    .echo = false, .quiet = false, .reverse = false, .sum = NULL};
 static const char *usage = "\
-usage: ./openssl command [flags] [file/string]\n\
+usage: ./openssl command [...]\n\
 \n\
-  -p, --echo            echo STDIN to STDOUT and append checksum to STDOUT.\n\
-  -q, --quiet           quiet mode\n\
-  -r, --reverse         reverse the format of the output\n\
-  -s, --string=string   print the sum of the given string\n\
-\n";
+Commands: md5, sha256\n";
+
 const char *executable_name = "ft_openssl";
 
-int main(int argc, char **argv) {
-    unsigned int nbr_arg;
-    t_options opts = default_opts;
+// static int
 
-    if (argc < 3)
+enum e_command { MD5, SHA256, NBR_ALGORITHM };
+
+struct s_algorithm {
+    const char *name;
+    int (*func)(unsigned int, char **);
+};
+
+int md5(unsigned int, char **);
+int sha256(unsigned int, char **);
+
+static const struct s_algorithm algorithms[NBR_ALGORITHM] = {
+    [MD5] = {.func = md5, .name = "md5"},
+    [SHA256] = {.func = sha256, .name = "sha256"}};
+
+int main(int argc, char **argv) {
+
+    if (argc < 2)
         error(2, 0, "%s", usage);
-    if (ft_options_retrieve(argc - 1, argv + 1, &opts, &nbr_arg))
-        error(2, 0, "%s", usage);
-    (void)nbr_arg;
-    (void)default_opts;
-    return (0);
+    for (unsigned int i = 0; i < NBR_ALGORITHM; i++) {
+        if (ft_strcmp(algorithms[i].name, argv[1]) == 0)
+            return (algorithms[i].func((unsigned int)(argc - 2), argv + 2));
+    }
+    error(2, 0, "%s", usage);
 }
