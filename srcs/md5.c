@@ -62,21 +62,37 @@ static const u_int32_t constants[64] = {
 
 void add_md5_block(u_int32_t state[4], const char block[128]) {
     u_int32_t new_state[4] = state;
-    unsigned int w = ((u_int32_t *)block)[i];
+    unsigned int f, g, tmp;
+
     for (unsigned int i = 0; i < 64; i++) {
 
         switch (i / 16) {
         case 0: // 0 to 15
-
+            f = (new_state[1] & new_state[2]) | (~new_state[1] & new_state[3]);
+            g = i;
             break;
         case 1: // 16 to 31
+            f = (new_state[3] & new_state[1]) | (~new_state[3] & new_state[2]);
+            g = (5 * i + 1) % 16;
             break;
         case 2: // 32 to 47
+            f = new_state[1] ^ new_state[2] ^ new_state[3];
+            g = (3 * i + 5) % 16;
             break;
         case 3: // 48 to 63
+            f = new_state[2] ^ (new_state[1] | ~new_state[3]);
+            g = (7 * i) % 16;
             break;
         }
+        tmp = new_state[3];
+        new_state[2] = new_state[1];
+        new_state[1] = 1; // leftrotate((a + f + k[i] + w[g]), r[i]) + b
+        new_state[0] = tmp;
     }
+    state[0] += new_state[0];
+    state[1] += new_state[1];
+    state[2] += new_state[2];
+    state[3] += new_state[3];
 }
 
 int md5(unsigned int nbr_arg, char **args) {
