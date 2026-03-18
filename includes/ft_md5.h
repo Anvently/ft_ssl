@@ -3,9 +3,11 @@
 
 #include <errno.h>
 #include <error.h>
+#include <fcntl.h>
 #include <libft.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 enum e_options_md5 { OPT_ECHO, OPT_QUIET, OPT_REVERSE, OPT_SUM, OPT_NBR };
 #define OPT_NBR OPT_NBR

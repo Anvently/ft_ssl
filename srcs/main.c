@@ -7,8 +7,6 @@ Commands: md5, sha256\n";
 
 const char *executable_name = "ft_openssl";
 
-// static int
-
 enum e_command { MD5, SHA256, NBR_ALGORITHM };
 
 struct s_algorithm {
