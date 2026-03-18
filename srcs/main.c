@@ -5,7 +5,7 @@ usage: ./openssl command [...]\n\
 \n\
 Commands: md5, sha256\n";
 
-const char *executable_name = "ft_openssl";
+const char *executable_name = "ft_ssl";
 
 enum e_command { MD5, SHA256, NBR_ALGORITHM };
 

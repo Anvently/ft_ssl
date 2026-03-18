@@ -1,4 +1,5 @@
 #include <ft_md5.h>
+#include <ft_openssl_utils.h>
 
 #define TO_LITTLE_ENDIAN(n)                                                    \
     ((((u_int8_t *)&(n))[0] << 24) | (((u_int8_t *)&(n))[1] << 16) |           \
@@ -24,22 +25,6 @@ int parse_md5_args(unsigned int *nbr_arg, char **args, t_options_md5 *options);
 static void free_opts(t_options_md5 *opts) {
     if (opts->sums) {
         ft_vector_free((t_vector **)&opts->sums);
-    }
-}
-static void print_args(unsigned int nbr_arg, char **args,
-                       t_options_md5 *options) __attribute_maybe_unused__;
-static void print_args(unsigned int nbr_arg, char **args,
-                       t_options_md5 *options) {
-    for (unsigned int i = 0; i < ft_vector_size(options->sums); i++) {
-        printf("string: %s\n", options->sums[i]);
-    }
-    for (unsigned int i = 0; i < nbr_arg;) {
-        if (args[i] == NULL) {
-            args++;
-            continue;
-        }
-        printf("file: %s\n", args[i]);
-        i++;
     }
 }
 
@@ -111,21 +96,20 @@ void add_md5_block(u_int32_t state[4], const char block[64]) {
     //        new_state[2], new_state[3]);
 }
 
-static void hash_string(const char *str, u_int32_t digest[4]) {
-    const size_t len = ft_strlen(str);
+static void hash_buff(const char *str, size_t len, u_int32_t digest[4]) {
     size_t remaining = len;
     char padding[128] = {0};
 
     ft_memcpy(digest, init_state, sizeof(init_state));
     while (remaining >= 64) {
         add_md5_block(digest, str);
-        remaining -= 128;
-        str += 128;
+        remaining -= 64;
+        str += 64;
     }
     ft_memcpy(padding, str, remaining);
     // add 1 bits after message (message is always % of 8 bits)
     padding[remaining] = 128; // 0b10000000
-    if (64 - remaining < 8) {
+    if (64 - remaining <= 8) {
         // Case where the minimum padding does not fit in a single block
         *((u_int64_t *)(padding + 128) - 1) = (len * 8);
         add_md5_block(digest, padding);
@@ -138,41 +122,41 @@ static void hash_string(const char *str, u_int32_t digest[4]) {
         digest[i] = TO_LITTLE_ENDIAN(digest[i]);
 }
 
-static int hash_file(int fd, u_int32_t digest[4], bool echo) {
-    ssize_t nread;
-    size_t total_len = 0;
-    char buff[64];
-    char padding[128] = {0};
+// static int hash_file(int fd, u_int32_t digest[4], bool echo) {
+//     ssize_t nread;
+//     size_t total_len = 0;
+//     char buff[64];
+//     char padding[128] = {0};
 
-    ft_memcpy(digest, init_state, sizeof(init_state));
-    total_len = nread = read(fd, buff, 64);
-    if (echo && nread > 0 && write(1, buff, nread) < 0)
-        return (1);
-    while (nread == 64) {
-        add_md5_block(digest, buff);
-        nread = read(fd, buff, 64);
-        total_len += nread;
-        if (echo && nread > 0 && write(1, buff, nread) < 0)
-            return (1);
-    }
-    if (nread < 0)
-        return (1);
-    ft_memcpy(padding, buff, nread);
-    // add 1 bits after message (message is always % of 8 bits)
-    padding[nread] = 128; // 0b10000000
-    if (64 - nread < 8) {
-        // Case where the minimum padding does not fit in a single block
-        *((u_int64_t *)(padding + 128) - 1) = (total_len * 8);
-        add_md5_block(digest, padding);
-        add_md5_block(digest, padding + 64);
-    } else {
-        *((u_int64_t *)(padding + 64) - 1) = (total_len * 8);
-        add_md5_block(digest, padding);
-    }
-    for (unsigned int i = 0; i < 4; i++)
-        digest[i] = TO_LITTLE_ENDIAN(digest[i]);
-    return (0);
-}
+//     ft_memcpy(digest, init_state, sizeof(init_state));
+//     total_len = nread = read(fd, buff, 64);
+//     if (echo && nread > 0 && write(1, buff, nread) < 0)
+//         return (1);
+//     while (nread == 64) {
+//         add_md5_block(digest, buff);
+//         nread = read(fd, buff, 64);
+//         total_len += nread;
+//         if (echo && nread > 0 && write(1, buff, nread) < 0)
+//             return (1);
+//     }
+//     if (nread < 0)
+//         return (1);
+//     ft_memcpy(padding, buff, nread);
+//     // add 1 bits after message (message is always % of 8 bits)
+//     padding[nread] = 128; // 0b10000000
+//     if (64 - nread < 8) {
+//         // Case where the minimum padding does not fit in a single block
+//         *((u_int64_t *)(padding + 128) - 1) = (total_len * 8);
+//         add_md5_block(digest, padding);
+//         add_md5_block(digest, padding + 64);
+//     } else {
+//         *((u_int64_t *)(padding + 64) - 1) = (total_len * 8);
+//         add_md5_block(digest, padding);
+//     }
+//     for (unsigned int i = 0; i < 4; i++)
+//         digest[i] = TO_LITTLE_ENDIAN(digest[i]);
+//     return (0);
+// }
 
 static void print_hash(u_int32_t digest[4], const char *name, bool quote,
                        t_options_md5 *opts) {
@@ -182,7 +166,7 @@ static void print_hash(u_int32_t digest[4], const char *name, bool quote,
         ft_sdprintf(1, "%x%x%x%x\n", digest[0], digest[1], digest[2],
                     digest[3]);
     else if (opts->reverse == false)
-        ft_sdprintf(1, "MD5 (%c%s%c) = %x%x%x%x\n", quote ? '"' : 0, name,
+        ft_sdprintf(1, "MD5(%c%s%c)= %x%x%x%x\n", quote ? '"' : 0, name,
                     quote ? '"' : 0, digest[0], digest[1], digest[2],
                     digest[3]);
     else
@@ -193,16 +177,17 @@ static void print_hash(u_int32_t digest[4], const char *name, bool quote,
 static void md5_string(const char *str, t_options_md5 *opts) {
     u_int32_t digest[4];
 
-    hash_string(str, digest);
+    hash_buff(str, ft_strlen(str), digest);
     print_hash(digest, str, true, opts);
 }
 
 static int md5_file(const char *path, t_options_md5 *opts) {
     u_int32_t digest[4];
+    char *vec;
     int fd = -1;
 
     fd = open(path, O_RDONLY, 0);
-    if (fd < 0 || hash_file(fd, digest, false)) {
+    if (fd < 0 || read_file(fd, &vec)) {
         ft_sdprintf(1, "%s: md5: %s: %s\n", executable_name, path,
                     strerror(errno));
         if (fd >= 0)
@@ -210,35 +195,27 @@ static int md5_file(const char *path, t_options_md5 *opts) {
         return (1);
     }
     close(fd);
+    hash_buff(vec, ft_vector_size(vec) - 1, digest);
     print_hash(digest, path, false, opts);
+    ft_vector_free((t_vector **)&vec);
     return (0);
 }
 
 static int md5_stdin(t_options_md5 *opts) {
     u_int32_t digest[4];
+    char *vec = NULL;
 
-    if (opts->reverse == false) {
-        if (opts->echo) {
-            ft_sdprintf(1, "MD5 (\"");
-        } else
-            ft_sdprintf(1, "MD5 (stdin) = ");
-    }
-    if (hash_file(0, digest, (opts->echo && opts->reverse == false))) {
+    if (read_file(0, &vec)) {
+        ft_vector_free((t_vector **)&vec);
         ft_sdprintf(1, "%s: md5: stdin: %s\n", executable_name,
                     strerror(errno));
         return (1);
     }
-    if (opts->echo && opts->reverse == false) {
-        ft_sdprintf(1, "\") = ");
-        print_hash(digest, NULL, false, NULL);
-        ft_sdprintf(1, "\n");
-    } else if (opts->reverse == true) {
-        print_hash(digest, NULL, false, NULL);
-        ft_sdprintf(1, " stdin\n");
-    } else {
-        print_hash(digest, NULL, false, NULL);
-        ft_sdprintf(1, "\n");
-    }
+    // ft_hexdump(vec, ft_vector_size(vec) - 1, 1, 0);
+    hash_buff(vec, ft_vector_size(vec) - 1, digest);
+    print_hash(digest, opts->echo ? vec : "stdin", opts->echo ? true : false,
+               opts);
+    ft_vector_free((t_vector **)&vec);
     return (0);
 }
 
