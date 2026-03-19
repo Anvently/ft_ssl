@@ -1,10 +1,10 @@
 #include <ft_openssl_utils.h>
 #include <ft_sha.h>
 
-static const t_options_sha256 default_opts = {
+static const t_options_sha224 default_opts = {
     .echo = false, .quiet = false, .reverse = false, .sums = NULL};
 static const char *usage = "\
-usage: ./openssl sha256 [flags] [file/string]\n\
+usage: ./openssl sha224 [flags] [file/string]\n\
 \n\
 Flags:\n\
   -p, --echo            echo STDIN to STDOUT and append checksum to STDOUT.\n\
@@ -17,20 +17,20 @@ extern const char *executable_name;
 
 int parse_md5_args(unsigned int *nbr_arg, char **args, t_options_md5 *options);
 
-static int parse_sha256_args(unsigned int *nbr_arg, char **args,
-                             t_options_sha256 *options) {
+static int parse_sha224_args(unsigned int *nbr_arg, char **args,
+                             t_options_sha224 *options) {
     return (parse_md5_args(nbr_arg, args, options));
 }
 
-static void free_opts(t_options_sha256 *opts) {
+static void free_opts(t_options_sha224 *opts) {
     if (opts->sums) {
         ft_vector_free((t_vector **)&opts->sums);
     }
 }
 
-static u_int32_t init_state[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372,
-                                  0xa54ff53a, 0x510e527f, 0x9b05688c,
-                                  0x1f83d9ab, 0x5be0cd19};
+static u_int32_t init_state[8] = {0xc1059ed8, 0x367cd507, 0x3070dd17,
+                                  0xf70e5939, 0xffc00b31, 0x68581511,
+                                  0x64f98fa7, 0xbefa4fa4};
 
 static const u_int32_t constants[64] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
@@ -45,7 +45,7 @@ static const u_int32_t constants[64] = {
     0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
 
-static void add_sha256_block(u_int32_t state[8], const char block[64]) {
+static void add_sha224_block(u_int32_t state[8], const char block[64]) {
     u_int32_t new_state[8] = {state[0], state[1], state[2], state[3],
                               state[4], state[5], state[6], state[7]};
     u_int32_t w[64] = {0};
@@ -97,7 +97,7 @@ static void hash_buff(const char *str, size_t len, u_int32_t digest[8]) {
     char padding[128] = {0};
     ft_memcpy(digest, init_state, sizeof(init_state));
     while (remaining >= 64) {
-        add_sha256_block(digest, str);
+        add_sha224_block(digest, str);
         remaining -= 64;
         str += 64;
     }
@@ -108,48 +108,48 @@ static void hash_buff(const char *str, size_t len, u_int32_t digest[8]) {
         // Case where the minimum padding does not fit in a single block
         for (int i = 0; i < 8; i++)
             padding[120 + i] = ((len * 8) >> (56 - i * 8)) & 0xFF;
-        add_sha256_block(digest, padding);
-        add_sha256_block(digest, padding + 64);
+        add_sha224_block(digest, padding);
+        add_sha224_block(digest, padding + 64);
     } else {
         for (int i = 0; i < 8; i++)
             padding[56 + i] = ((len * 8) >> (56 - i * 8)) & 0xFF;
-        add_sha256_block(digest, padding);
+        add_sha224_block(digest, padding);
     }
 }
 
 static void print_hash(u_int32_t digest[8], const char *name, bool quote,
-                       t_options_sha256 *opts) {
+                       t_options_sha224 *opts) {
     if (name == NULL)
-        ft_sdprintf(1, "%x%x%x%x%x%x%x%x", digest[0], digest[1], digest[2],
-                    digest[3], digest[4], digest[5], digest[6], digest[7]);
+        ft_sdprintf(1, "%x%x%x%x%x%x%x", digest[0], digest[1], digest[2],
+                    digest[3], digest[4], digest[5], digest[6]);
     else if (opts->quiet == true)
-        ft_sdprintf(1, "%x%x%x%x%x%x%x%x\n", digest[0], digest[1], digest[2],
-                    digest[3], digest[4], digest[5], digest[6], digest[7]);
+        ft_sdprintf(1, "%x%x%x%x%x%x%x\n", digest[0], digest[1], digest[2],
+                    digest[3], digest[4], digest[5], digest[6]);
     else if (opts->reverse == false)
-        ft_sdprintf(1, "SHA256(%c%s%c)= %x%x%x%x%x%x%x%x\n", quote ? '"' : 0,
+        ft_sdprintf(1, "SHA224(%c%s%c)= %x%x%x%x%x%x%x\n", quote ? '"' : 0,
                     name, quote ? '"' : 0, digest[0], digest[1], digest[2],
-                    digest[3], digest[4], digest[5], digest[6], digest[7]);
+                    digest[3], digest[4], digest[5], digest[6]);
     else
-        ft_sdprintf(1, "%x%x%x%x%x%x%x%x %c%s%c\n", digest[0], digest[1],
+        ft_sdprintf(1, "%x%x%x%x%x%x%x %c%s%c\n", digest[0], digest[1],
                     digest[2], digest[3], digest[4], digest[5], digest[6],
-                    digest[7], quote ? '"' : 0, name, quote ? '"' : 0);
+                    quote ? '"' : 0, name, quote ? '"' : 0);
 }
 
-static void sha256_string(const char *str, t_options_sha256 *opts) {
+static void sha224_string(const char *str, t_options_sha224 *opts) {
     u_int32_t digest[8];
 
     hash_buff(str, ft_strlen(str), digest);
     print_hash(digest, str, true, opts);
 }
 
-static int sha256_file(const char *path, t_options_sha256 *opts) {
+static int sha224_file(const char *path, t_options_sha224 *opts) {
     u_int32_t digest[8];
     char *vec;
     int fd = -1;
 
     fd = open(path, O_RDONLY, 0);
     if (fd < 0 || read_file(fd, &vec)) {
-        ft_sdprintf(1, "%s: sha256: %s: %s\n", executable_name, path,
+        ft_sdprintf(1, "%s: sha224: %s: %s\n", executable_name, path,
                     strerror(errno));
         if (fd >= 0)
             close(fd);
@@ -162,7 +162,7 @@ static int sha256_file(const char *path, t_options_sha256 *opts) {
     return (0);
 }
 
-static int sha256_stdin(t_options_sha256 *opts) {
+static int sha224_stdin(t_options_sha224 *opts) {
     u_int32_t digest[8];
     char *vec = NULL;
 
@@ -180,15 +180,15 @@ static int sha256_stdin(t_options_sha256 *opts) {
     return (0);
 }
 
-int sha256(unsigned int nbr_arg, char **args) {
-    t_options_sha256 opts = default_opts;
+int sha224(unsigned int nbr_arg, char **args) {
+    t_options_sha224 opts = default_opts;
     int ret = 0, func_ret;
 
-    if (parse_sha256_args(&nbr_arg, args, &opts))
+    if (parse_sha224_args(&nbr_arg, args, &opts))
         error(2, 0, "%s", usage);
     if ((nbr_arg == 0 && ft_vector_size(opts.sums) == 0) ||
         opts.echo) { // read stdin
-        ret = sha256_stdin(&opts);
+        ret = sha224_stdin(&opts);
     }
 
     for (unsigned int i = 0; i < nbr_arg;) { // read files
@@ -196,14 +196,14 @@ int sha256(unsigned int nbr_arg, char **args) {
             args++;
             continue;
         }
-        func_ret = sha256_file(args[i], &opts);
+        func_ret = sha224_file(args[i], &opts);
         if (func_ret)
             ret++;
         i++;
     }
 
     for (unsigned int i = 0; i < ft_vector_size(opts.sums); i++) {
-        sha256_string(opts.sums[i], &opts);
+        sha224_string(opts.sums[i], &opts);
     }
     free_opts(&opts);
     return (ret);

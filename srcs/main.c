@@ -3,13 +3,15 @@
 static const char *usage = "\
 usage: ./openssl command [...]\n\
 \n\
-Commands: md5, sha256\n";
+Commands: md5, sha256, sha224\n";
 
 const char *executable_name = "ft_ssl";
 
 const struct s_algorithm algorithms[NBR_ALGORITHM] = {
     [MD5] = {.func = md5, .name = "md5"},
-    [SHA256] = {.func = sha256, .name = "sha256"}};
+    [SHA256] = {.func = sha256, .name = "sha256"},
+    [SHA224] = {.func = sha224, .name = "sha224"},
+    [SHA512] = {.func = sha512, .name = "sha512"}};
 
 int main(int argc, char **argv) {
 

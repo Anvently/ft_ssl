@@ -4,7 +4,7 @@
 extern const struct s_algorithm algorithms[NBR_ALGORITHM];
 
 static const char *usage = "\
-Commands: md5, sha256\n";
+Commands: md5, sha256, sha224, sha512\n";
 
 static int handle_command(int argc, char **argv) {
     if (argc == 0)

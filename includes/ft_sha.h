@@ -6,5 +6,9 @@
 
 typedef t_options_md5 t_options_sha256;
 typedef enum e_options_md5 e_options_sha256;
+typedef t_options_md5 t_options_sha224;
+typedef enum e_options_md5 e_options_sha224;
+typedef t_options_md5 t_options_sha512;
+typedef enum e_options_md5 e_options_sha512;
 
 #endif
