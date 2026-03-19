@@ -4,7 +4,7 @@ INCLUDES	=	includes/
 SRCS_FOLDER	=	srcs/
 OBJS_FOLDER	=	.objs/
 
-SRCS_FILES	=	main.c parse_args_md5.c md5.c sha256.c file.c
+SRCS_FILES	=	main.c parse_args_md5.c md5.c sha256.c file.c interactive_mode.c
 
 OBJS		=	$(addprefix $(OBJS_FOLDER),$(SRCS_FILES:.c=.o))
 SRCS		=	$(addprefix $(SRCS_FOLDER),$(SRCS_FILES))

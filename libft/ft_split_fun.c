@@ -12,7 +12,7 @@
 
 #include <libft.h>
 
-static int count_words(char const *s, char sep) {
+static int count_words(char const *s, int (*fun)(char)) {
     int i;
     int j;
     int count;
@@ -20,10 +20,10 @@ static int count_words(char const *s, char sep) {
     i = 0;
     count = 0;
     while (s[i]) {
-        while (s[i] && sep == s[i])
+        while (s[i] && fun(s[i]))
             i++;
         j = 0;
-        while (s[i + j] && sep != s[i + j])
+        while (s[i + j] && fun(s[i + j]) == 0)
             j++;
         if (j)
             count++;
@@ -32,7 +32,7 @@ static int count_words(char const *s, char sep) {
     return (count);
 }
 
-static char **parse_words(char const *s, char **strings, char sep) {
+static char **parse_words(char const *s, char **strings, int (*fun)(char)) {
     int i;
     int j;
     int word_index;
@@ -40,10 +40,10 @@ static char **parse_words(char const *s, char **strings, char sep) {
     i = 0;
     word_index = 0;
     while (s[i]) {
-        while (s[i] && sep == s[i])
+        while (s[i] && fun(s[i]))
             i++;
         j = 0;
-        while (s[i + j] && sep != s[i + j])
+        while (s[i + j] && fun(s[i + j]) == 0)
             j++;
         if (j) {
             word_index++;
@@ -59,21 +59,21 @@ static char **parse_words(char const *s, char **strings, char sep) {
 /// @brief Return a list of allocated string for each substring
 /// found in s using c as a delimiter. The list is null terminated.
 /// @param s string to split using the delimiter
-/// @param c delimiter used to split the string
+/// @param fun function returning 1 if char is a delimiter
 /// @return Address of a null terminated list of string.
 /// NULL if allocation fails.
-char **ft_split(char const *s, char c) {
+char **ft_split_fun(char const *s, int (*fun)(char)) {
     char **strings;
     size_t nb_words;
 
     if (!s)
         return (NULL);
-    nb_words = count_words(s, c);
+    nb_words = count_words(s, fun);
     strings = malloc((nb_words + 1) * sizeof(char *));
     if (!strings)
         return (NULL);
     strings[nb_words] = NULL;
-    if (!parse_words(s, strings, c))
+    if (!parse_words(s, strings, fun))
         return (NULL);
     return (strings);
 }

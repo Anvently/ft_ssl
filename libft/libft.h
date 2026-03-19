@@ -116,6 +116,8 @@ void ft_hexdump_color_zone(const void *addr, size_t n, size_t unit,
 
 /* --------------------------------- STRINGS -------------------------------- */
 
+char **ft_split_static(char *s, int (*fun)(char));
+char **ft_split_fun(char const *s, int (*fun)(char));
 char **ft_split(char const *s, char c);
 char **ft_free_strs(char **strings);
 char ***ft_free_strss(char ***strs);
