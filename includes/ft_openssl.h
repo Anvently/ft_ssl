@@ -14,6 +14,7 @@ struct s_algorithm {
 };
 
 int interactive_mode();
+void print_commands();
 
 int md5(unsigned int, char **);
 int sha256(unsigned int, char **);

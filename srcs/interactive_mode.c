@@ -3,9 +3,6 @@
 
 extern const struct s_algorithm algorithms[NBR_ALGORITHM];
 
-static const char *usage = "\
-Commands: md5, sha256, sha224, sha512\n";
-
 static int handle_command(int argc, char **argv) {
     if (argc == 0)
         return (0);
@@ -13,7 +10,7 @@ static int handle_command(int argc, char **argv) {
         if (ft_strcmp(algorithms[i].name, argv[0]) == 0)
             return (algorithms[i].func((unsigned int)(argc - 1), argv + 1));
     }
-    ft_sdprintf(1, "%s", usage);
+    print_commands();
     return (1);
 }
 
