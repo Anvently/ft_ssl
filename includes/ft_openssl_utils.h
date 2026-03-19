@@ -1,3 +1,5 @@
+#ifndef FT_OPENSSL_UTILS_H
+#define FT_OPENSSL_UTILS_H
 #include <libft.h>
 
 #define REVERT_ENDIANESS_32(n)                                                 \
@@ -22,3 +24,4 @@ u_int32_t right_rotate(u_int32_t n, u_int8_t off);
 
 u_int64_t left_rotate64(u_int64_t n, u_int8_t off);
 u_int64_t right_rotate64(u_int64_t n, u_int8_t off);
+#endif
