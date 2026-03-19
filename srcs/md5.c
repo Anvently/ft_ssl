@@ -1,10 +1,6 @@
 #include <ft_md5.h>
 #include <ft_openssl_utils.h>
 
-#define TO_LITTLE_ENDIAN(n)                                                    \
-    ((((u_int8_t *)&(n))[0] << 24) | (((u_int8_t *)&(n))[1] << 16) |           \
-     (((u_int8_t *)&(n))[2] << 8) | (((u_int8_t *)&(n))[3] << 0))
-
 extern const char *executable_name;
 
 static const t_options_md5 default_opts = {
@@ -28,10 +24,6 @@ static void free_opts(t_options_md5 *opts) {
     }
 }
 
-static u_int32_t left_rotate(u_int32_t n, u_int8_t off) {
-    return ((n << off) | (n >> (32 - off)));
-}
-
 static u_int32_t init_state[4] = {0x67452301, 0xEFCDAB89, 0x98BADCFE,
                                   0x10325476};
 static const u_int8_t rotates[64] = {
@@ -52,7 +44,7 @@ static const u_int32_t constants[64] = {
     0xffeff47d, 0x85845dd1, 0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
     0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391};
 
-void add_md5_block(u_int32_t state[4], const char block[64]) {
+static void add_md5_block(u_int32_t state[4], const char block[64]) {
     u_int32_t new_state[4] = {state[0], state[1], state[2], state[3]};
     unsigned int f, g, tmp;
 
@@ -119,7 +111,7 @@ static void hash_buff(const char *str, size_t len, u_int32_t digest[4]) {
         add_md5_block(digest, padding);
     }
     for (unsigned int i = 0; i < 4; i++)
-        digest[i] = TO_LITTLE_ENDIAN(digest[i]);
+        digest[i] = REVERT_ENDIANESS_32(digest[i]);
 }
 
 // static int hash_file(int fd, u_int32_t digest[4], bool echo) {
@@ -154,7 +146,7 @@ static void hash_buff(const char *str, size_t len, u_int32_t digest[4]) {
 //         add_md5_block(digest, padding);
 //     }
 //     for (unsigned int i = 0; i < 4; i++)
-//         digest[i] = TO_LITTLE_ENDIAN(digest[i]);
+//         digest[i] = REVERT_ENDIANESS_32(digest[i]);
 //     return (0);
 // }
 
