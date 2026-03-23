@@ -28,3 +28,20 @@ int read_file(int fd, char **vec) {
     ft_vector_resize((t_vector **)vec, size + 1);
     return (0);
 }
+
+int print_character_64(int fd, const char *buff, unsigned int n) {
+    static size_t nprint = 0;
+    ssize_t nwrite;
+
+    nwrite = write(fd, buff, ft_min_lu(n, 64 - nprint));
+    if (nwrite < 0)
+        return (1);
+    nprint += nwrite;
+    if (nprint == 64) {
+        ft_sdprintf(fd, "\n");
+        nprint = 0;
+    }
+    if (n > (unsigned int)nwrite)
+        return (print_character_64(fd, buff + nwrite, n - nwrite));
+    return (0);
+}

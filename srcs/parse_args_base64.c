@@ -14,7 +14,7 @@ static t_opt_flag options_list[OPT_NBR] = {
                     .short_id = 'd',
                     .long_id = "decode",
                     .handler = (int (*)(void *, char *))register_decode},
-    [OPT_INPUT_FILE] = {.arg = ARG_NONE,
+    [OPT_INPUT_FILE] = {.arg = ARG_REQUIRED,
                         .short_id = 'i',
                         .long_id = "input",
                         .handler =

@@ -24,4 +24,7 @@ u_int32_t right_rotate(u_int32_t n, u_int8_t off);
 
 u_int64_t left_rotate64(u_int64_t n, u_int8_t off);
 u_int64_t right_rotate64(u_int64_t n, u_int8_t off);
+
+int print_character_64(int fd, const char *buff, unsigned int n);
+
 #endif
