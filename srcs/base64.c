@@ -53,7 +53,8 @@ static int open_io(t_ctx *ctx) {
         return (1);
     }
     if (ctx->opts.output_file) {
-        ctx->fd_out = open(ctx->opts.output_file, O_RDWR | O_CREAT, 0644);
+        ctx->fd_out =
+            open(ctx->opts.output_file, O_RDWR | O_CREAT | O_TRUNC, 0644);
         if (ctx->fd_out < 0) {
             ft_sdprintf(1, "%s: base64: opening file: %s\n", executable_name,
                         strerror(errno));
@@ -208,7 +209,7 @@ static int base64_decode(t_ctx *ctx) {
             return (1);
         }
     }
-    ft_sdprintf(1, "\n");
+    // ft_sdprintf(1, "\n");
     return (0);
 }
 

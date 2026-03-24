@@ -133,6 +133,7 @@ long ft_atol(const char *nptr);
 int ft_strtoi(const char *str, int *dest);
 int ft_strtof(char *str, float *dest, char **ptr);
 int ft_strtod(char *str, double *dest, char **ptr);
+int ft_strtoul_hex(const char *str, unsigned long *dest, const char **ptr);
 int ft_strtoul_base(const char *str, unsigned long *dest, const char **ptr,
                     const char *base);
 char *ft_itoa(int n);
@@ -500,6 +501,7 @@ int ft_options_err_ambiguous_argument(const char *option, const char *arg,
                                       const char ***valids);
 int ft_options_err_incompatible_options(const char *option1,
                                         const char *option2);
+int ft_options_err(const char *arg, const char *ctx);
 
 int check_options(t_options *options) __attribute__((weak));
 

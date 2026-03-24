@@ -64,6 +64,11 @@ int ft_options_err_invalid_argument(const char *option, const char *arg,
     return (ERROR_INPUT);
 }
 
+int ft_options_err(const char *arg, const char *ctx) {
+    ft_dprintf(2, "%s: option '--%s': %s\n", executable_name, arg, ctx);
+    return (ERROR_INPUT);
+}
+
 int ft_options_err_ambiguous_argument(const char *option, const char *arg,
                                       const char ***valids) {
     ft_dprintf(2, "%s: ambiguous argument ‘%s’ for ‘--%s’\n", executable_name,

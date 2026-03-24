@@ -6,7 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
-enum e_command { MD5, SHA256, SHA224, SHA512, BASE64, NBR_ALGORITHM };
+enum e_command { MD5, SHA256, SHA224, SHA512, BASE64, DES, NBR_ALGORITHM };
 
 struct s_algorithm {
     const char *name;
@@ -21,5 +21,6 @@ int sha256(unsigned int, char **);
 int sha224(unsigned int, char **);
 int sha512(unsigned int, char **);
 int base64(unsigned int nbr_arg, char **args);
+int des(unsigned int nbr_arg, char **args);
 
 #endif

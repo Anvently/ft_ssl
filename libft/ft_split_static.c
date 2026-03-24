@@ -32,7 +32,7 @@ static int count_words(char const *s, int (*fun)(char)) {
     return (count);
 }
 
-static void **parse_words(char *s, char **strings, int (*fun)(char)) {
+static void parse_words(char *s, char **strings, int (*fun)(char)) {
     int i;
     int j;
     int word_index;
