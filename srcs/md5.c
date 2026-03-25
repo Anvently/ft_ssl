@@ -88,7 +88,7 @@ static void add_md5_block(u_int32_t state[4], const char block[64]) {
     //        new_state[2], new_state[3]);
 }
 
-static void hash_buff(const char *str, size_t len, u_int32_t digest[4]) {
+void hash_buff_md5(const char *str, size_t len, u_int32_t digest[4]) {
     size_t remaining = len;
     char padding[128] = {0};
 
@@ -169,7 +169,7 @@ static void print_hash(u_int32_t digest[4], const char *name, bool quote,
 static void md5_string(const char *str, t_options_md5 *opts) {
     u_int32_t digest[4];
 
-    hash_buff(str, ft_strlen(str), digest);
+    hash_buff_md5(str, ft_strlen(str), digest);
     print_hash(digest, str, true, opts);
 }
 
@@ -187,7 +187,7 @@ static int md5_file(const char *path, t_options_md5 *opts) {
         return (1);
     }
     close(fd);
-    hash_buff(vec, ft_vector_size(vec) - 1, digest);
+    hash_buff_md5(vec, ft_vector_size(vec) - 1, digest);
     print_hash(digest, path, false, opts);
     ft_vector_free((t_vector **)&vec);
     return (0);
@@ -204,7 +204,7 @@ static int md5_stdin(t_options_md5 *opts) {
         return (1);
     }
     // ft_hexdump(vec, ft_vector_size(vec) - 1, 1, 0);
-    hash_buff(vec, ft_vector_size(vec) - 1, digest);
+    hash_buff_md5(vec, ft_vector_size(vec) - 1, digest);
     print_hash(digest, opts->echo ? vec : "stdin", opts->echo ? true : false,
                opts);
     ft_vector_free((t_vector **)&vec);

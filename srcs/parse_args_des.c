@@ -164,8 +164,8 @@ static int register_iv(t_options_des *opts, char *arg) {
 
 static void print_options(t_options_des *opts) __attribute_maybe_unused__;
 static void print_options(t_options_des *opts) {
-    ft_sdprintf(1, "salt=%lx\nkey=%lx\niv=%lx\n", opts->salt, opts->key,
-                opts->iv);
+    ft_sdprintf(1, "salt=%lx\nkey=%lx\niv=%lx\n", opts->salt.value,
+                opts->key.value, opts->iv.value);
     ft_sdprintf(1, "infile=%s\noutfile=%s\npass=%s\nmode=%d\n",
                 opts->input_file, opts->output_file, opts->password.value,
                 opts->mode);

@@ -92,7 +92,7 @@ static void add_sha256_block(u_int32_t state[8], const char block[64]) {
     state[7] += new_state[7];
 }
 
-static void hash_buff(const char *str, size_t len, u_int32_t digest[8]) {
+void hash_buff_sha256(const char *str, size_t len, u_int32_t digest[8]) {
     size_t remaining = len;
     char padding[128] = {0};
     ft_memcpy(digest, init_state, sizeof(init_state));
@@ -138,7 +138,7 @@ static void print_hash(u_int32_t digest[8], const char *name, bool quote,
 static void sha256_string(const char *str, t_options_sha256 *opts) {
     u_int32_t digest[8];
 
-    hash_buff(str, ft_strlen(str), digest);
+    hash_buff_sha256(str, ft_strlen(str), digest);
     print_hash(digest, str, true, opts);
 }
 
@@ -156,7 +156,7 @@ static int sha256_file(const char *path, t_options_sha256 *opts) {
         return (1);
     }
     close(fd);
-    hash_buff(vec, ft_vector_size(vec) - 1, digest);
+    hash_buff_sha256(vec, ft_vector_size(vec) - 1, digest);
     print_hash(digest, path, false, opts);
     ft_vector_free((t_vector **)&vec);
     return (0);
@@ -173,7 +173,7 @@ static int sha256_stdin(t_options_sha256 *opts) {
         return (1);
     }
     // ft_hexdump(vec, ft_vector_size(vec) - 1, 1, 0);
-    hash_buff(vec, ft_vector_size(vec) - 1, digest);
+    hash_buff_sha256(vec, ft_vector_size(vec) - 1, digest);
     print_hash(digest, opts->echo ? vec : "stdin", opts->echo ? true : false,
                opts);
     ft_vector_free((t_vector **)&vec);

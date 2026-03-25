@@ -1,6 +1,7 @@
 #include <fcntl.h>
 #include <ft_des.h>
 #include <ft_openssl_utils.h>
+#include <ft_pbkdf.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -29,6 +30,7 @@ Flags:\n\
 typedef struct s_des_ctx {
     t_options_des opts;
     char *payload;
+    char *cursor;
     size_t payload_len;
     int fd_out;
 } t_ctx;
@@ -57,6 +59,7 @@ static int open_io(t_ctx *ctx) {
         return (1);
     }
     ctx->payload_len = ft_vector_size(ctx->payload) - 1;
+    ctx->cursor = ctx->payload;
     if (ctx->opts.output_file) {
         ctx->fd_out =
             open(ctx->opts.output_file, O_RDWR | O_CREAT | O_TRUNC, 0644);
@@ -112,20 +115,29 @@ static int read_salt(const char *payload, size_t payload_len, u_int64_t *salt) {
 static int derive_key(t_ctx *ctx) {
     // GENERATE KEY
     // 1. Generate / read salt
-    if (ctx->opts.salt.given == false) {
-        if (ctx->opts.mode == MODE_ENCODE) {
-            // @todo generate salt
+    if (ctx->opts.mode == MODE_ENCODE) {
+        // @todo generate salt
+        if (ctx->opts.salt.given == false)
             ctx->opts.salt.value = random_u64();
-            if (write_salt(ctx->fd_out, ctx->opts.salt.value))
-                return (1);
-        } else if (ctx->opts.mode == MODE_DECODE &&
-                   read_salt(ctx->payload, ctx->payload_len,
-                             &ctx->opts.salt.value)) {
+        if (write_salt(ctx->fd_out, ctx->opts.salt.value))
             return (1);
-        }
+    } else if (ctx->opts.mode == MODE_DECODE) {
+        if (read_salt(ctx->payload, ctx->payload_len, &ctx->opts.salt.value))
+            return (1);
+        ctx->cursor += 16;
     }
-    ft_sdprintf(1, "SALT=%lx\n", ctx->opts.salt.value);
-    // 2. Generate key and IV
+    // 2. Derive key and IV from salt and password
+    struct s_pbkdf_arg args = {.dk_len = 16,
+                               .iteration = 1,
+                               .hash_opts = get_hash_props("md5"),
+                               .key_out = &ctx->opts.key,
+                               .password = ctx->opts.password.value,
+                               .password_len =
+                                   ft_strlen(ctx->opts.password.value),
+                               .salt = htobe64(ctx->opts.salt.value)};
+    pbkdf1(&args);
+    ft_sdprintf(1, "salt=%lx\nkey=%lx\n", ctx->opts.salt.value,
+                ctx->opts.key.value);
 
     return (0);
 }
