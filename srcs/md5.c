@@ -71,9 +71,9 @@ static void add_md5_block(u_int32_t state[4], const char block[64]) {
         tmp = new_state[3];
         new_state[3] = new_state[2];
         new_state[2] = new_state[1];
-        new_state[1] = left_rotate(new_state[0] + f + constants[i] +
-                                       ((u_int32_t *)block)[g],
-                                   rotates[i]) +
+        new_state[1] = left_rotate32(new_state[0] + f + constants[i] +
+                                         ((u_int32_t *)block)[g],
+                                     rotates[i]) +
                        new_state[1];
         new_state[0] = tmp;
         // printf("Round %d: %#x, %#x, %#x, %#x\n", i, new_state[0],
@@ -86,6 +86,13 @@ static void add_md5_block(u_int32_t state[4], const char block[64]) {
     state[3] += new_state[3];
     // printf("OFFSET: %#x, %#x, %#x, %#x\n", new_state[0], new_state[1],
     //        new_state[2], new_state[3]);
+}
+
+void hash_buff_md5_be(const char *str, size_t len, char *digest) {
+    hash_buff_md5(str, len, (u_int32_t *)digest);
+    for (unsigned int i = 0; i < 4; i++) {
+        ((u_int32_t *)digest)[i] = htobe32(((u_int32_t *)digest)[i]);
+    }
 }
 
 void hash_buff_md5(const char *str, size_t len, u_int32_t digest[4]) {

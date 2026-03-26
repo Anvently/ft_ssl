@@ -16,12 +16,13 @@ enum e_options_des {
     OPT_PASSWORD_VALUE,
     OPT_SALT,
     OPT_IV, // == IV
+    OPT_MD, // Hash algorithm use to perform pbkdf
     OPT_NBR
 };
 
 struct s_options_des {
     bool base64;
-    enum { MODE_ENCODE, MODE_DECODE } mode;
+    enum e_op_mode { MODE_ENCODE, MODE_DECODE } mode;
     const char *input_file;
     const char *output_file;
     struct {
@@ -40,6 +41,7 @@ struct s_options_des {
         u_int64_t value;
         bool given;
     } iv;
+    const char *hash_option;
 };
 
 typedef struct s_options_des t_options_des;

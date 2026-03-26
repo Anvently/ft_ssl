@@ -18,8 +18,7 @@ struct s_pbkdf_arg {
     size_t password_len; // P
     size_t dk_len;       // dkLen
     u_int64_t salt;
-    void *key_out; // keyLen = dkLen / 2
-    void *iv_out;  // ivLen = dkLen / 2
+    void *dk_out; // dkLen buffer
 };
 
 struct s_hash_props *get_hash_props(const char *name);

@@ -22,5 +22,6 @@ struct s_options_md5 {
 typedef struct s_options_md5 t_options_md5;
 
 void hash_buff_md5(const char *str, size_t len, u_int32_t digest[4]);
+void hash_buff_md5_be(const char *str, size_t len, char *digest);
 
 #endif

@@ -12,6 +12,7 @@ static int register_password(t_options_des *, char *);
 static int register_password_value(t_options_des *, char *);
 static int register_salt(t_options_des *, char *);
 static int register_iv(t_options_des *, char *);
+static int register_md(t_options_des *, char *);
 
 static t_opt_flag options_list[OPT_NBR] = {
     [OPT_BASE64] = {.arg = ARG_NONE,
@@ -57,7 +58,10 @@ static t_opt_flag options_list[OPT_NBR] = {
                 .short_id = 'v',
                 .long_id = "iv",
                 .handler = (int (*)(void *, char *))register_iv},
-};
+    [OPT_MD] = {.arg = ARG_REQUIRED,
+                .short_id = 0,
+                .long_id = "md",
+                .handler = (int (*)(void *, char *))register_md}};
 
 static int register_encode(t_options_des *opts, char *arg) {
     (void)arg;
@@ -203,5 +207,10 @@ int parse_des_args(unsigned int *nbr_arg, char **args, t_options_des *options) {
         read_pass(options))
         return (2);
     print_options(options);
+    return (0);
+}
+
+static int register_md(t_options_des *opts, char *arg) {
+    opts->hash_option = arg;
     return (0);
 }

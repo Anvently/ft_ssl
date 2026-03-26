@@ -55,20 +55,22 @@ static void add_sha256_block(u_int32_t state[8], const char block[64]) {
         w[i] = REVERT_ENDIANESS_32(((u_int32_t *)block)[i]);
     }
     for (unsigned int i = 16; i < 64; i++) { // Compute remaining  48 words of w
-        s0 = right_rotate(w[i - 15], 7) ^ right_rotate(w[i - 15], 18) ^
+        s0 = right_rotate32(w[i - 15], 7) ^ right_rotate32(w[i - 15], 18) ^
              (w[i - 15] >> 3);
-        s1 = right_rotate(w[i - 2], 17) ^ right_rotate(w[i - 2], 19) ^
+        s1 = right_rotate32(w[i - 2], 17) ^ right_rotate32(w[i - 2], 19) ^
              (w[i - 2] >> 10);
         w[i] = w[i - 16] + s0 + w[i - 7] + s1;
     }
 
     for (unsigned int i = 0; i < 64; i++) {
-        s0 = right_rotate(new_state[4], 6) ^ right_rotate(new_state[4], 11) ^
-             right_rotate(new_state[4], 25);
+        s0 = right_rotate32(new_state[4], 6) ^
+             right_rotate32(new_state[4], 11) ^
+             right_rotate32(new_state[4], 25);
         s1 = (new_state[4] & new_state[5]) ^ (~(new_state[4]) & new_state[6]);
         tmp1 = new_state[7] + s0 + s1 + constants[i] + w[i];
-        s0 = right_rotate(new_state[0], 2) ^ right_rotate(new_state[0], 13) ^
-             right_rotate(new_state[0], 22);
+        s0 = right_rotate32(new_state[0], 2) ^
+             right_rotate32(new_state[0], 13) ^
+             right_rotate32(new_state[0], 22);
         s1 = (new_state[0] & new_state[1]) ^ (new_state[0] & new_state[2]) ^
              (new_state[1] & new_state[2]);
         tmp2 = s0 + s1;
@@ -90,6 +92,13 @@ static void add_sha256_block(u_int32_t state[8], const char block[64]) {
     state[5] += new_state[5];
     state[6] += new_state[6];
     state[7] += new_state[7];
+}
+
+void hash_buff_sha256_be(const char *str, size_t len, void *digest) {
+    hash_buff_sha256(str, len, (u_int32_t *)digest);
+    for (unsigned int i = 0; i < 8; i++) {
+        ((u_int32_t *)digest)[i] = htobe32(((u_int32_t *)digest)[i]);
+    }
 }
 
 void hash_buff_sha256(const char *str, size_t len, u_int32_t digest[8]) {

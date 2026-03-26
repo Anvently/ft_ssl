@@ -48,15 +48,15 @@ FOR X ITERATION:
 // clang-format on
 
 static struct s_hash_props hash_options[] = {
-    [MD5] = {.name = "md5",
-             .hash_func = (t_hash_func)hash_buff_md5,
-             .output_size = 16},
-    [SHA256] = {.name = "sha256",
-                .hash_func = (t_hash_func)hash_buff_sha256,
-                .output_size = 32},
-    [SHA512] = {.name = "sha512",
-                .hash_func = (t_hash_func)hash_buff_sha512,
-                .output_size = 64},
+    [0] = {.name = "md5",
+           .hash_func = (t_hash_func)hash_buff_md5_be,
+           .output_size = 16},
+    [1] = {.name = "sha256",
+           .hash_func = (t_hash_func)hash_buff_sha256_be,
+           .output_size = 32},
+    [2] = {.name = "sha512",
+           .hash_func = (t_hash_func)hash_buff_sha512_be,
+           .output_size = 64},
 };
 
 struct s_hash_props *get_hash_props(const char *name) {
@@ -70,7 +70,8 @@ struct s_hash_props *get_hash_props(const char *name) {
 
 int pbkdf1(struct s_pbkdf_arg *args);
 
-/// @brief Implementation of PBKDF algorithm
+/// @brief Implementation of PBKDF algorithm. DK is returned in canonical (big
+/// endian) form.
 /// @param args
 /// @return ```0``` for success, ```1``` if input error. Exit on allocation
 /// error
@@ -100,12 +101,7 @@ int pbkdf1(struct s_pbkdf_arg *args) {
         hash_props->hash_func(data, data_size, digest);
     }
     ft_hexdump(digest, hash_props->output_size, 1, 0);
-    // DK is the first dkLen bytes of digest
-    // Split DK into key + iv_out
-    if (args->key_out)
-        ft_memcpy(args->key_out, digest, args->dk_len / 2);
-    if (args->iv_out)
-        ft_memcpy(args->iv_out, digest + (args->dk_len / 2), args->dk_len / 2);
+    ft_memcpy(args->dk_out, digest, args->dk_len);
     free(data);
     free(digest);
     return (0);

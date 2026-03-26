@@ -111,6 +111,13 @@ static void add_sha512_block(u_int64_t state[8], const char block[128]) {
     state[7] += new_state[7];
 }
 
+void hash_buff_sha512_be(const char *str, size_t len, void *digest) {
+    hash_buff_sha512(str, len, (u_int64_t *)digest);
+    for (unsigned int i = 0; i < 8; i++) {
+        ((u_int64_t *)digest)[i] = htobe64(((u_int64_t *)digest)[i]);
+    }
+}
+
 void hash_buff_sha512(const char *str, size_t len, u_int64_t digest[8]) {
     size_t remaining = len;
     char padding[256] = {0};
