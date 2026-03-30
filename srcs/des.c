@@ -253,11 +253,13 @@ static u_int64_t mangler_function(u_int64_t right, u_int64_t key) {
 }
 
 static u_int64_t des_encode_decode_block(u_int64_t padded_payload,
-                                         u_int64_t keys[16]) {
+                                         u_int64_t keys[16], u_int64_t *iv) {
     u_int64_t block, left, right, tmp;
 
     block = htobe64(padded_payload); // Revert endianness (payload is big endian
                                      // while uint64_t is little endian)
+    if (iv)
+        block ^= *iv;
     block = permute(block, ip, sizeof(ip)); // initial permutation
     left = block >> 32;
     right = block & 0xFFFFFFFF;
@@ -270,6 +272,8 @@ static u_int64_t des_encode_decode_block(u_int64_t padded_payload,
     }
     block = (right << 32) | left;
     block = permute(block, fp, sizeof(fp));
+    if (iv)
+        *iv = block;
     block = htobe64(block); // Put block back to big endian
     return (block);
 }
@@ -277,11 +281,13 @@ static u_int64_t des_encode_decode_block(u_int64_t padded_payload,
 static int des_encode(t_ctx *ctx) {
     u_int64_t keys[16];
     u_int64_t block;
-    generate_keys(keys, ctx->opts.key.value, MODE_ENCODE);
+    u_int64_t *iv =
+        ctx->opts.enc_mode != ENC_MODE_ECB ? &ctx->opts.iv.value : NULL;
 
+    generate_keys(keys, ctx->opts.key.value, MODE_ENCODE);
     while (ctx->remaining >= 8) {
         ft_memcpy(&block, ctx->cursor, 8);
-        block = des_encode_decode_block(block, keys);
+        block = des_encode_decode_block(block, keys, iv);
         if (write(ctx->fd_out, &block, 8) < 0) {
             ft_sdprintf(1, "%s: des: writing to file: %s\n", executable_name,
                         strerror(errno));
@@ -292,7 +298,7 @@ static int des_encode(t_ctx *ctx) {
     }
     ft_memset(&block, (char)(8 - ctx->remaining), 8); // Padd
     ft_memcpy(&block, ctx->cursor, ctx->remaining);
-    block = des_encode_decode_block(block, keys);
+    block = des_encode_decode_block(block, keys, iv);
     if (write(ctx->fd_out, &block, 8) < 0) {
         ft_sdprintf(1, "%s: des: writing to file: %s\n", executable_name,
                     strerror(errno));
@@ -304,11 +310,13 @@ static int des_encode(t_ctx *ctx) {
 static int des_decode(t_ctx *ctx) {
     u_int64_t keys[16];
     u_int64_t block;
-    generate_keys(keys, ctx->opts.key.value, MODE_DECODE);
+    u_int64_t *iv =
+        ctx->opts.enc_mode != ENC_MODE_ECB ? &ctx->opts.iv.value : NULL;
 
+    generate_keys(keys, ctx->opts.key.value, MODE_DECODE);
     while (ctx->remaining > 0) {
         ft_memcpy(&block, ctx->cursor, 8);
-        block = des_encode_decode_block(block, keys);
+        block = des_encode_decode_block(block, keys, iv);
         if (ctx->remaining <= 8) // Dont print last block because of padding
             break;
         if (write(ctx->fd_out, &block, 8) < 0) {
@@ -320,7 +328,11 @@ static int des_decode(t_ctx *ctx) {
         ctx->cursor += 8;
     }
     char padlen = ((char *)&block)[7];
-    ft_sdprintf(1, "padlen=%u\n", (unsigned int)padlen);
+    if (padlen > 8) {
+        ft_sdprintf(1, "%s: des: invalid padding len of %u\n", executable_name,
+                    (unsigned int)padlen);
+        return (1);
+    }
     if (write(ctx->fd_out, &block, 8 - padlen) < 0) {
         ft_sdprintf(1, "%s: des: writing to file: %s\n", executable_name,
                     strerror(errno));
@@ -360,7 +372,7 @@ static int read_salt(const char *payload, size_t payload_len, u_int64_t *salt) {
 }
 
 static int derive_key(t_ctx *ctx) {
-    char dk[8];
+    char dk[16];
     // GENERATE KEY
     // 1. Generate / read salt
     if (ctx->opts.mode == MODE_ENCODE) {
@@ -391,17 +403,23 @@ static int derive_key(t_ctx *ctx) {
     }
     pbkdf1(&args);
     ctx->opts.key.value = htobe64(*(u_int64_t *)dk);
-    ft_sdprintf(1, "salt=%lX\nkey=%lX\n", ctx->opts.salt.value,
-                ctx->opts.key.value);
-
+    if (ctx->opts.iv.given == false)
+        ctx->opts.iv.value = htobe64(*(((u_int64_t *)dk) + 1));
+    if (ctx->opts.print_key) {
+        ft_sdprintf(1, "salt=%lX\nkey=%lX\n", ctx->opts.salt.value,
+                    ctx->opts.key.value);
+        if (ctx->opts.enc_mode != ENC_MODE_ECB)
+            ft_sdprintf(1, "IV=%lX\n", ctx->opts.iv.value);
+    }
     return (0);
 }
 
-int des(unsigned int nbr_arg, char **args) {
+int des(unsigned int nbr_arg, char **args, enum e_encryption_mode mode) {
     t_ctx context = {
         .opts = default_opts, .payload = NULL, .fd_out = STDOUT_FILENO};
     int ret = 0;
 
+    context.opts.enc_mode = mode;
     if (parse_des_args(&nbr_arg, args, &context.opts))
         error(2, 0, "%s", usage);
     if (open_io(&context))
@@ -416,4 +434,12 @@ int des(unsigned int nbr_arg, char **args) {
         ret = des_decode(&context);
     free_ctx(&context);
     return (ret);
+}
+
+int des_ecb(unsigned int nbr_arg, char **args) {
+    return (des(nbr_arg, args, ENC_MODE_ECB));
+}
+
+int des_cbc(unsigned int nbr_arg, char **args) {
+    return (des(nbr_arg, args, ENC_MODE_CBC));
 }

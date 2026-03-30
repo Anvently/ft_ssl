@@ -12,7 +12,9 @@ const struct s_algorithm algorithms[NBR_ALGORITHM] = {
     [SHA224] = {.func = sha224, .name = "sha224"},
     [SHA512] = {.func = sha512, .name = "sha512"},
     [BASE64] = {.func = base64, .name = "base64"},
-    [DES] = {.func = des, .name = "des"}};
+    [DES] = {.func = des_cbc, .name = "des"},
+    [DES_ECB] = {.func = des_ecb, .name = "des-ecb"},
+    [DES_CBC] = {.func = des_cbc, .name = "des-cbc"}};
 
 void print_commands() {
     ft_sdprintf(1, "Commands: ");

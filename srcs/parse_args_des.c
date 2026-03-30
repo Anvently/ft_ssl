@@ -8,11 +8,11 @@ static int register_decode(t_options_des *, char *);
 static int register_input_file(t_options_des *, char *);
 static int register_output_file(t_options_des *, char *);
 static int register_key(t_options_des *, char *);
-static int register_password(t_options_des *, char *);
 static int register_password_value(t_options_des *, char *);
 static int register_salt(t_options_des *, char *);
 static int register_iv(t_options_des *, char *);
 static int register_md(t_options_des *, char *);
+static int register_print_key(t_options_des *, char *);
 
 static t_opt_flag options_list[OPT_NBR] = {
     [OPT_BASE64] = {.arg = ARG_NONE,
@@ -41,12 +41,8 @@ static t_opt_flag options_list[OPT_NBR] = {
                  .short_id = 'k',
                  .long_id = "key",
                  .handler = (int (*)(void *, char *))register_key},
-    [OPT_PASSWORD] = {.arg = ARG_NONE,
-                      .short_id = 'p',
-                      .long_id = "input-pass",
-                      .handler = (int (*)(void *, char *))register_password},
     [OPT_PASSWORD_VALUE] = {.arg = ARG_REQUIRED,
-                            .short_id = 0,
+                            .short_id = 'p',
                             .long_id = "pass",
                             .handler = (int (*)(
                                 void *, char *))register_password_value},
@@ -61,7 +57,11 @@ static t_opt_flag options_list[OPT_NBR] = {
     [OPT_MD] = {.arg = ARG_REQUIRED,
                 .short_id = 0,
                 .long_id = "md",
-                .handler = (int (*)(void *, char *))register_md}};
+                .handler = (int (*)(void *, char *))register_md},
+    [OPT_PRINT_KEY] = {.arg = ARG_NONE,
+                       .short_id = 'P',
+                       .long_id = "print",
+                       .handler = (int (*)(void *, char *))register_print_key}};
 
 static int register_encode(t_options_des *opts, char *arg) {
     (void)arg;
@@ -85,12 +85,6 @@ static int register_output_file(t_options_des *opts, char *arg) {
 static int register_base64(t_options_des *opts, char *arg) {
     (void)arg;
     opts->base64 = true;
-    return (0);
-}
-
-static int register_password(t_options_des *opts, char *arg) {
-    (void)arg;
-    (void)opts;
     return (0);
 }
 
@@ -165,6 +159,16 @@ static int register_iv(t_options_des *opts, char *arg) {
     opts->iv.given = true;
     return (0);
 }
+static int register_md(t_options_des *opts, char *arg) {
+    opts->hash_option = arg;
+    return (0);
+}
+
+static int register_print_key(t_options_des *opts, char *arg) {
+    (void)arg;
+    opts->print_key = true;
+    return (0);
+}
 
 static void print_options(t_options_des *opts) __attribute_maybe_unused__;
 static void print_options(t_options_des *opts) {
@@ -207,10 +211,5 @@ int parse_des_args(unsigned int *nbr_arg, char **args, t_options_des *options) {
         read_pass(options))
         return (2);
     // print_options(options);
-    return (0);
-}
-
-static int register_md(t_options_des *opts, char *arg) {
-    opts->hash_option = arg;
     return (0);
 }

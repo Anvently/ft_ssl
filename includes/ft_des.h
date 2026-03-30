@@ -12,13 +12,15 @@ enum e_options_des {
     OPT_INPUT_FILE,
     OPT_OUTPUT_FILE,
     OPT_KEY,
-    OPT_PASSWORD, // Do nothing, password prompt is enabled by default
     OPT_PASSWORD_VALUE,
     OPT_SALT,
-    OPT_IV, // == IV
-    OPT_MD, // Hash algorithm use to perform pbkdf
+    OPT_IV,        // == IV
+    OPT_MD,        // Hash algorithm use to perform pbkdf
+    OPT_PRINT_KEY, // Print encryption key, salt and IV
     OPT_NBR
 };
+
+enum e_encryption_mode { ENC_MODE_ECB = 0, ENC_MODE_CBC = 1 };
 
 struct s_options_des {
     bool base64;
@@ -42,6 +44,8 @@ struct s_options_des {
         bool given;
     } iv;
     const char *hash_option;
+    enum e_encryption_mode enc_mode;
+    bool print_key;
 };
 
 typedef struct s_options_des t_options_des;
