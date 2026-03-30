@@ -93,14 +93,12 @@ int pbkdf1(struct s_pbkdf_arg *args) {
         error(-1, errno, "allocating data for password and salt concatenation");
     ft_memcpy(data, args->password, args->password_len);
     ft_memcpy(data + args->password_len, &args->salt, sizeof(args->salt));
-    ft_hexdump(data, data_size, 1, 0);
     hash_props->hash_func(data, data_size, digest);
     data_size = hash_props->output_size;
     for (size_t i = 1; i < args->iteration; i++) {
         ft_memcpy(data, digest, hash_props->output_size);
         hash_props->hash_func(data, data_size, digest);
     }
-    ft_hexdump(digest, hash_props->output_size, 1, 0);
     ft_memcpy(args->dk_out, digest, args->dk_len);
     free(data);
     free(digest);

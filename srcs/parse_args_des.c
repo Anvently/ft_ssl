@@ -206,7 +206,7 @@ int parse_des_args(unsigned int *nbr_arg, char **args, t_options_des *options) {
     if (options->key.given == false && options->password.prompt == true &&
         read_pass(options))
         return (2);
-    print_options(options);
+    // print_options(options);
     return (0);
 }
 

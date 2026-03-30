@@ -48,10 +48,34 @@ u_int64_t permute(u_int64_t n, const u_int8_t *pt, u_int8_t pt_size) {
     return (new_n);
 }
 
-void print_bits(char *data, unsigned int size, bool newline) {
+/// @brief Print ```size``` byte in binary. Assume data is stored in little
+/// endian
+/// @param data
+/// @param size
+/// @param newline
+void print_bits_le(char *data, unsigned int size, bool newline) {
     unsigned int i = size;
 
     while (i--) {
+        for (unsigned int j = 0; j < 8; j++) {
+            ft_putchar_fd(data[i] & (1 << (7 - j)) ? '1' : '0', 1);
+        }
+        ft_putchar_fd(' ', 1);
+    }
+    if (newline)
+        ft_putchar_fd('\n', 1);
+    else
+        fflush(stdout);
+}
+
+/// @brief Print ```size``` byte in binary. Assume data is stored in big
+/// endian
+/// @param data
+/// @param size
+/// @param newline
+void print_bits_be(char *data, unsigned int size, bool newline) {
+
+    for (unsigned i = 0; i < size; i++) {
         for (unsigned int j = 0; j < 8; j++) {
             ft_putchar_fd(data[i] & (1 << (7 - j)) ? '1' : '0', 1);
         }

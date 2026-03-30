@@ -31,7 +31,8 @@ u_int32_t right_rotate28(u_int32_t n, u_int8_t off);
 u_int64_t permute(u_int64_t n, const u_int8_t *pt, u_int8_t pt_size);
 
 int print_character_64(int fd, const char *buff, unsigned int n);
-void print_bits(char *data, unsigned int size, bool newline);
+void print_bits_le(char *data, unsigned int size, bool newline);
+void print_bits_be(char *data, unsigned int size, bool newline);
 
 u_int64_t random_u64(void);
 
