@@ -12,7 +12,7 @@ enum e_options_base64 {
 };
 
 struct s_options_base64 {
-    enum { MODE_ENCODE, MODE_DECODE } mode;
+    enum e_base64_mode mode;
     const char *input_file;
     const char *output_file;
 };

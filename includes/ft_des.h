@@ -24,7 +24,7 @@ enum e_encryption_mode { ENC_MODE_ECB = 0, ENC_MODE_CBC = 1 };
 
 struct s_options_des {
     bool base64;
-    enum e_op_mode { MODE_ENCODE, MODE_DECODE } mode;
+    enum e_op_mode { DES_MODE_ENCODE, DES_MODE_DECODE } mode;
     const char *input_file;
     const char *output_file;
     struct {

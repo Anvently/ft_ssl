@@ -9,7 +9,7 @@
 
 extern const char *executable_name;
 
-static const t_options_des default_opts = {.mode = MODE_ENCODE,
+static const t_options_des default_opts = {.mode = DES_MODE_ENCODE,
                                            .input_file = NULL,
                                            .output_file = NULL,
                                            .password.prompt = true,
@@ -36,6 +36,8 @@ typedef struct s_des_ctx {
     size_t payload_len;
     size_t remaining;
     char *cursor;
+    int fd_out_base64; // Only use in encode with -a option enabled
+    int fd_in_base64;  // Only use in encode with -a option enabled
     int fd_out;
 } t_ctx;
 
@@ -171,24 +173,75 @@ static void free_ctx(t_ctx *ctx) {
         ft_vector_free((t_vector **)&ctx->payload);
     if (ctx->fd_out > 0)
         close(ctx->fd_out);
+    if (ctx->fd_in_base64 > 0)
+        close(ctx->fd_in_base64);
+    if (ctx->fd_out_base64 > 0)
+        close(ctx->fd_out_base64);
+}
+
+static int input_base64_decode(int fd_in, int *new_fd_in) {
+    int fds[2];
+
+    if (pipe(fds)) {
+        ft_sdprintf(1, "%s: des: using pipe() to decode base64 input: %s\n",
+                    executable_name, strerror(errno));
+        return (1);
+    }
+    if (base64_fds(fd_in, fds[0], BASE64_MODE_DECODE)) {
+        close(fds[0]);
+        close(fds[1]);
+        return (1);
+    }
+    close(fds[0]);
+    if (fd_in >= STDIN_FILENO)
+        close(fd_in);
+    close(fd_in);
+    *new_fd_in = fds[1];
+    return (0);
+}
+
+static int output_base64_encode(t_ctx *ctx) {
+    int fds[2];
+
+    if (pipe(fds)) {
+        ft_sdprintf(1, "%s: des: using pipe() to decode base64 input: %s\n",
+                    executable_name, strerror(errno));
+        return (1);
+    }
+    ctx->fd_out_base64 = ctx->fd_out;
+    ctx->fd_in_base64 = fds[1];
+    ctx->fd_out = fds[0];
+    return (0);
 }
 
 static int open_io(t_ctx *ctx) {
-    int fd = STDIN_FILENO;
+    int fd_in = STDIN_FILENO;
 
     if (ctx->opts.input_file) {
-        fd = open(ctx->opts.input_file, O_RDONLY, 0);
-        if (fd < 0) {
+        fd_in = open(ctx->opts.input_file, O_RDONLY, 0);
+        if (fd_in < 0) {
             ft_sdprintf(1, "%s: des: opening file: %s\n", executable_name,
                         strerror(errno));
             return (1);
         }
     }
-    if (read_file(fd, &ctx->payload)) {
+    if (ctx->opts.base64 &&
+        ctx->opts.mode == DES_MODE_DECODE) { // Decode payload to base64
+        if (input_base64_decode(fd_in, &fd_in)) {
+            if (fd_in != STDIN_FILENO)
+                close(fd_in);
+            return (1);
+        }
+    }
+    if (read_file(fd_in, &ctx->payload)) {
         ft_sdprintf(1, "%s: des: reading file: %s\n", executable_name,
                     strerror(errno));
+        if (fd_in != STDIN_FILENO)
+            close(fd_in);
         return (1);
     }
+    if (fd_in >= STDIN_FILENO)
+        close(fd_in);
     ctx->payload_len = ft_vector_size(ctx->payload) - 1;
     ctx->cursor = ctx->payload;
     ctx->remaining = ctx->payload_len;
@@ -201,6 +254,12 @@ static int open_io(t_ctx *ctx) {
             free_ctx(ctx);
             return (1);
         }
+    }
+    if (ctx->opts.base64 &&
+        ctx->opts.mode == DES_MODE_ENCODE) { // Encode cipher to base64
+        if (output_base64_encode(ctx))
+            free_ctx(ctx);
+        return (1);
     }
     return (0);
 }
@@ -218,7 +277,7 @@ static void generate_keys(u_int64_t keys[16], u_int64_t key,
         pkey = ((u_int64_t)left << 28) | right;               // 56 bits concat
         keys[i] = permute(pkey << 8, pc2, sizeof(pc2)) >> 16; // 56 to 48 bits
     }
-    if (mode == MODE_DECODE) { // reverse keys
+    if (mode == DES_MODE_DECODE) { // reverse keys
         for (unsigned int i = 0; i < 8; i++) {
             pkey = keys[i];
             keys[i] = keys[15 - i];
@@ -284,7 +343,7 @@ static int des_encode(t_ctx *ctx) {
     u_int64_t *iv =
         ctx->opts.enc_mode != ENC_MODE_ECB ? &ctx->opts.iv.value : NULL;
 
-    generate_keys(keys, ctx->opts.key.value, MODE_ENCODE);
+    generate_keys(keys, ctx->opts.key.value, DES_MODE_ENCODE);
     while (ctx->remaining >= 8) {
         ft_memcpy(&block, ctx->cursor, 8);
         block = des_encode_decode_block(block, keys, iv);
@@ -304,6 +363,11 @@ static int des_encode(t_ctx *ctx) {
                     strerror(errno));
         return (1);
     }
+    if (ctx->opts.base64) {
+        if (base64_fds(ctx->fd_in_base64, ctx->fd_out_base64,
+                       BASE64_MODE_ENCODE))
+            return (1);
+    }
     return (0);
 }
 
@@ -313,7 +377,7 @@ static int des_decode(t_ctx *ctx) {
     u_int64_t *iv =
         ctx->opts.enc_mode != ENC_MODE_ECB ? &ctx->opts.iv.value : NULL;
 
-    generate_keys(keys, ctx->opts.key.value, MODE_DECODE);
+    generate_keys(keys, ctx->opts.key.value, DES_MODE_DECODE);
     while (ctx->remaining > 0) {
         ft_memcpy(&block, ctx->cursor, 8);
         block = des_encode_decode_block(block, keys, iv);
@@ -375,13 +439,13 @@ static int derive_key(t_ctx *ctx) {
     char dk[16];
     // GENERATE KEY
     // 1. Generate / read salt
-    if (ctx->opts.mode == MODE_ENCODE) {
+    if (ctx->opts.mode == DES_MODE_ENCODE) {
         // @todo generate salt
         if (ctx->opts.salt.given == false)
             ctx->opts.salt.value = random_u64();
         if (write_salt(ctx->fd_out, ctx->opts.salt.value))
             return (1);
-    } else if (ctx->opts.mode == MODE_DECODE) {
+    } else if (ctx->opts.mode == DES_MODE_DECODE) {
         if (read_salt(ctx->payload, ctx->payload_len, &ctx->opts.salt.value))
             return (1);
         ctx->cursor += 16;
@@ -428,7 +492,7 @@ int des(unsigned int nbr_arg, char **args, enum e_encryption_mode mode) {
         free_ctx(&context);
         return (1);
     }
-    if (context.opts.mode == MODE_ENCODE)
+    if (context.opts.mode == DES_MODE_ENCODE)
         ret = des_encode(&context);
     else
         ret = des_decode(&context);

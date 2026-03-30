@@ -7,7 +7,7 @@
 extern const char *executable_name;
 
 static const t_options_base64 default_opts = {
-    .mode = MODE_ENCODE, .input_file = NULL, .output_file = NULL};
+    .mode = BASE64_MODE_ENCODE, .input_file = NULL, .output_file = NULL};
 static const char *usage = "\
 usage: ./openssl base64 [flags]\n\
 \n\
@@ -27,6 +27,7 @@ typedef struct s_base64_ctx {
     t_options_base64 opts;
     char *payload;
     int fd_out;
+    int fd_in;
 } t_ctx;
 
 static void free_ctx(t_ctx *ctx) {
@@ -37,7 +38,7 @@ static void free_ctx(t_ctx *ctx) {
 }
 
 static int open_io(t_ctx *ctx) {
-    int fd = STDIN_FILENO;
+    int fd = ctx->fd_in;
 
     if (ctx->opts.input_file) {
         fd = open(ctx->opts.input_file, O_RDONLY, 0);
@@ -213,16 +214,36 @@ static int base64_decode(t_ctx *ctx) {
     return (0);
 }
 
+int base64_fds(int fd_in, int fd_out, enum e_base64_mode mode) {
+    t_ctx context = {.opts = default_opts,
+                     .payload = NULL,
+                     .fd_out = fd_out,
+                     .fd_in = fd_in};
+    int ret = 0;
+
+    context.opts.mode = mode;
+    if (open_io(&context))
+        return (1);
+    if (context.opts.mode == BASE64_MODE_ENCODE)
+        ret = base64_encode(&context);
+    else
+        ret = base64_decode(&context);
+    free_ctx(&context);
+    return (ret);
+}
+
 int base64(unsigned int nbr_arg, char **args) {
-    t_ctx context = {
-        .opts = default_opts, .payload = NULL, .fd_out = STDOUT_FILENO};
+    t_ctx context = {.opts = default_opts,
+                     .payload = NULL,
+                     .fd_out = STDOUT_FILENO,
+                     .fd_in = STDIN_FILENO};
     int ret = 0;
 
     if (parse_base64_args(&nbr_arg, args, &context.opts))
         error(2, 0, "%s", usage);
     if (open_io(&context))
         return (1);
-    if (context.opts.mode == MODE_ENCODE)
+    if (context.opts.mode == BASE64_MODE_ENCODE)
         ret = base64_encode(&context);
     else
         ret = base64_decode(&context);

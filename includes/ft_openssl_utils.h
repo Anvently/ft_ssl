@@ -36,4 +36,7 @@ void print_bits_be(char *data, unsigned int size, bool newline);
 
 u_int64_t random_u64(void);
 
+enum e_base64_mode { BASE64_MODE_ENCODE, BASE64_MODE_DECODE };
+int base64_fds(int fd_in, int fd_out, enum e_base64_mode mode);
+
 #endif
