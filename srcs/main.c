@@ -19,7 +19,22 @@ const struct s_algorithm algorithms[NBR_ALGORITHM] = {
                   .name = "des-pcbc",
                   .type = ALGO_TYPE_CIPHER},
     [DES_CFB] = {.func = des_cfb, .name = "des-cfb", .type = ALGO_TYPE_CIPHER},
-    [DES_OFB] = {.func = des_ofb, .name = "des-ofb", .type = ALGO_TYPE_CIPHER}};
+    [DES_OFB] = {.func = des_ofb, .name = "des-ofb", .type = ALGO_TYPE_CIPHER},
+    [DES3] = {.func = des3_cbc, .name = "des3", .type = ALGO_TYPE_CIPHER},
+    [DES3_ECB] = {.func = des3_ecb,
+                  .name = "des3-ecb",
+                  .type = ALGO_TYPE_CIPHER},
+    [DES3_CBC] = {.func = des3_cbc,
+                  .name = "des3-cbc",
+                  .type = ALGO_TYPE_CIPHER},
+    [DES3_PCBC] = {.func = des3_pcbc,
+                   .name = "des3-pcbc",
+                   .type = ALGO_TYPE_CIPHER},
+    [DES3_CFB] = {.func = des3_cfb,
+                  .name = "des3-cfb",
+                  .type = ALGO_TYPE_CIPHER},
+    [DES3_OFB] = {
+        .func = des3_ofb, .name = "des3-ofb", .type = ALGO_TYPE_CIPHER}};
 
 void print_commands() {
     int count = 0;

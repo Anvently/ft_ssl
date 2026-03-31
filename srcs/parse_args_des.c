@@ -95,10 +95,18 @@ u_int64_t padd_left_u64_hex(u_int64_t n) {
     }
     return (n);
 }
+static int register_key_des3(t_options_des *opts, char *arg) {
+    (void)opts;
+    (void)arg;
+    return (0);
+}
 
 static int register_key(t_options_des *opts, char *arg) {
     u_int64_t value;
     const char *ptr = arg;
+
+    if (opts->des3)
+        return (register_key_des3(opts, arg));
     switch (ft_strtoul_hex(arg, &value, &ptr)) {
     default:
         break;
@@ -109,7 +117,7 @@ static int register_key(t_options_des *opts, char *arg) {
         ft_options_err("key", "format error");
         return (2);
     }
-    opts->key.value = padd_left_u64_hex(value);
+    opts->key.value.des = padd_left_u64_hex(value);
     opts->key.given = true;
     return (0);
 }

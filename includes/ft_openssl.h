@@ -18,6 +18,12 @@ enum e_command {
     DES_PCBC,
     DES_CFB,
     DES_OFB,
+    DES3,
+    DES3_ECB,
+    DES3_CBC,
+    DES3_PCBC,
+    DES3_CFB,
+    DES3_OFB,
     NBR_ALGORITHM
 };
 
@@ -48,5 +54,10 @@ int des_cbc(unsigned int nbr_arg, char **args);
 int des_pcbc(unsigned int nbr_arg, char **args);
 int des_cfb(unsigned int nbr_arg, char **args);
 int des_ofb(unsigned int nbr_arg, char **args);
+int des3_ecb(unsigned int nbr_arg, char **args);
+int des3_cbc(unsigned int nbr_arg, char **args);
+int des3_pcbc(unsigned int nbr_arg, char **args);
+int des3_cfb(unsigned int nbr_arg, char **args);
+int des3_ofb(unsigned int nbr_arg, char **args);
 
 #endif

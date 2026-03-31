@@ -7,7 +7,7 @@ OBJS_FOLDER	=	.objs/
 SRCS_FILES	=	main.c parse_args_md5.c md5.c sha256.c file.c \
 				interactive_mode.c bitwise.c sha224.c sha512.c \
 				base64.c parse_args_base64.c des.c parse_args_des.c \
-				pbkdf.c cipher.c
+				pbkdf.c cipher.c des3.c
 
 OBJS		=	$(addprefix $(OBJS_FOLDER),$(SRCS_FILES:.c=.o))
 SRCS		=	$(addprefix $(SRCS_FOLDER),$(SRCS_FILES))

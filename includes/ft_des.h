@@ -21,6 +21,7 @@ enum e_options_des {
 };
 
 struct s_options_des {
+    bool des3;
     bool base64;
     enum e_op_mode { DES_MODE_ENCODE, DES_MODE_DECODE } mode;
     const char *input_file;
@@ -30,7 +31,10 @@ struct s_options_des {
         bool prompt;
     } password;
     struct {
-        u_int64_t value;
+        union {
+            u_int64_t des;
+            char des3[3 * sizeof(u_int64_t)];
+        } value;
         bool given;
     } key;
     struct {
