@@ -15,6 +15,9 @@ enum e_command {
     DES,
     DES_ECB,
     DES_CBC,
+    DES_PCBC,
+    DES_CFB,
+    DES_OFB,
     NBR_ALGORITHM
 };
 
@@ -23,7 +26,13 @@ struct s_algorithm {
     int (*func)(unsigned int, char **);
 };
 
-enum e_encryption_mode { ENC_MODE_ECB = 0, ENC_MODE_CBC = 1 };
+enum e_encryption_mode {
+    ENC_MODE_ECB = 0,
+    ENC_MODE_CBC,
+    ENC_MODE_PCBC,
+    ENC_MODE_CFB,
+    ENC_MODE_OFB,
+};
 
 int interactive_mode();
 void print_commands();
@@ -35,5 +44,8 @@ int sha512(unsigned int, char **);
 int base64(unsigned int nbr_arg, char **args);
 int des_ecb(unsigned int nbr_arg, char **args);
 int des_cbc(unsigned int nbr_arg, char **args);
+int des_pcbc(unsigned int nbr_arg, char **args);
+int des_cfb(unsigned int nbr_arg, char **args);
+int des_ofb(unsigned int nbr_arg, char **args);
 
 #endif

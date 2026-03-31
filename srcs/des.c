@@ -1,4 +1,5 @@
 #include <fcntl.h>
+#include <ft_cipher.h>
 #include <ft_des.h>
 #include <ft_openssl_utils.h>
 #include <ft_pbkdf.h>
@@ -13,7 +14,7 @@ static const t_options_des default_opts = {.mode = DES_MODE_ENCODE,
                                            .input_file = NULL,
                                            .output_file = NULL,
                                            .password.prompt = true,
-                                           .hash_option = "md5"};
+                                           .hash_option = "sha256"};
 static const char *usage = "\
 usage: ./openssl base64 [flags]\n\
 \n\
@@ -312,12 +313,12 @@ static u_int64_t mangler_function(u_int64_t right, u_int64_t key) {
     return (right);
 }
 
-static u_int64_t des_ecb_encode_decode_block(u_int64_t padded_payload,
-                                             u_int64_t keys[16]) {
-    u_int64_t block, left, right, tmp;
+u_int64_t des_algo(u_int64_t block, u_int64_t keys[16]) {
+    u_int64_t left, right, tmp;
 
-    block = htobe64(padded_payload); // Revert endianness (payload is big endian
-                                     // while uint64_t is little endian)
+    block = htobe64(block); // Revert endianness (payload is big endian
+                            // while uint64_t is little endian)
+
     block = permute(block, ip, sizeof(ip)); // initial permutation
     left = block >> 32;
     right = block & 0xFFFFFFFF;
@@ -334,78 +335,36 @@ static u_int64_t des_ecb_encode_decode_block(u_int64_t padded_payload,
     return (block);
 }
 
-static u_int64_t des_cbc_encode_decode_block(u_int64_t padded_payload,
-                                             u_int64_t keys[16],
-                                             u_int64_t *iv_ptr,
-                                             enum e_op_mode mode) {
-    u_int64_t block, left, right, tmp;
-    u_int64_t iv = *iv_ptr;
+/*
 
-    block = htobe64(padded_payload); // Revert endianness (payload is big endian
-                                     // while uint64_t is little endian)
+be0b11010101 ^ le0b11010000
 
-    if (mode == DES_MODE_ENCODE)
-        block ^= iv;
-    else
-        *iv_ptr = block;
-    block = permute(block, ip, sizeof(ip)); // initial permutation
-    left = block >> 32;
-    right = block & 0xFFFFFFFF;
-    for (unsigned int i = 0; i < 16; i++) { // Feistel rounds
-        tmp = right;
-        // Feistel function
-        right = mangler_function(right, keys[i]);
-        right ^= left;
-        left = tmp;
-    }
-    block = (right << 32) | left;
-    block = permute(block, fp, sizeof(fp));
-    if (mode == DES_MODE_ENCODE)
-        *iv_ptr = block;
-    else
-        block ^= iv;
-    block = htobe64(block); // Put block back to big endian
-    return (block);
-}
+le0b01011101 ^ le0b11010000 = le0b11011000
+be0b11010101 ^ be0b00001101 = be0b10001101
 
-static u_int64_t des_encode_decode_block(t_ctx *ctx, u_int64_t block,
-                                         u_int64_t keys[16]) {
-    switch (ctx->opts.enc_mode) {
-    case ENC_MODE_CBC:
-        return (des_cbc_encode_decode_block(block, keys, &ctx->opts.iv.value,
-                                            ctx->opts.mode));
 
-    case ENC_MODE_ECB:
-        return (des_ecb_encode_decode_block(block, keys));
-        break;
-    }
-    return (0);
-}
+*/
 
 static int des_encode(t_ctx *ctx) {
     u_int64_t keys[16];
-    u_int64_t block;
+    struct s_cipher_context cipher_ctx = {.data = keys,
+                                          .decrypt_fun = (t_fun_cipher)des_algo,
+                                          .encrypt_fun = (t_fun_cipher)des_algo,
+                                          .enc_mode = ctx->opts.enc_mode,
+                                          .fd_out = ctx->fd_out,
+                                          .iv = htobe64(ctx->opts.iv.value),
+                                          .name = "des",
+                                          .padlen = 0,
+                                          .payload = ctx->cursor,
+                                          .remaining = ctx->remaining};
 
     generate_keys(keys, ctx->opts.key.value, DES_MODE_ENCODE);
-    while (ctx->remaining >= 8) {
-        ft_memcpy(&block, ctx->cursor, 8);
-        block = des_encode_decode_block(ctx, block, keys);
-        if (write(ctx->fd_out, &block, 8) < 0) {
-            ft_sdprintf(1, "%s: des: writing to file: %s\n", executable_name,
-                        strerror(errno));
-            return (1);
-        }
-        ctx->remaining -= 8;
-        ctx->cursor += 8;
-    }
-    ft_memset(&block, (char)(8 - ctx->remaining), 8); // Padd
-    ft_memcpy(&block, ctx->cursor, ctx->remaining);
-    block = des_encode_decode_block(ctx, block, keys);
-    if (write(ctx->fd_out, &block, 8) < 0) {
-        ft_sdprintf(1, "%s: des: writing to file: %s\n", executable_name,
-                    strerror(errno));
+    if (cipher_ctx.enc_mode == ENC_MODE_CBC ||
+        cipher_ctx.enc_mode == ENC_MODE_ECB ||
+        cipher_ctx.enc_mode == ENC_MODE_PCBC)
+        cipher_ctx.padlen = 8;
+    if (cipher_encrypt(&cipher_ctx))
         return (1);
-    }
     if (ctx->opts.base64) {
         close(ctx->fd_out);
         if (base64_fds(ctx->fd_in_base64, ctx->fd_out_base64,
@@ -417,33 +376,24 @@ static int des_encode(t_ctx *ctx) {
 
 static int des_decode(t_ctx *ctx) {
     u_int64_t keys[16];
-    u_int64_t block;
+    struct s_cipher_context cipher_ctx = {.data = keys,
+                                          .decrypt_fun = (t_fun_cipher)des_algo,
+                                          .encrypt_fun = (t_fun_cipher)des_algo,
+                                          .enc_mode = ctx->opts.enc_mode,
+                                          .fd_out = ctx->fd_out,
+                                          .iv = htobe64(ctx->opts.iv.value),
+                                          .name = "des",
+                                          .padlen = 0,
+                                          .payload = ctx->cursor,
+                                          .remaining = ctx->remaining};
 
     generate_keys(keys, ctx->opts.key.value, DES_MODE_DECODE);
-    while (ctx->remaining > 0) {
-        ft_memcpy(&block, ctx->cursor, 8);
-        block = des_encode_decode_block(ctx, block, keys);
-        if (ctx->remaining <= 8) // Dont print last block because of padding
-            break;
-        if (write(ctx->fd_out, &block, 8) < 0) {
-            ft_sdprintf(1, "%s: des: writing to file: %s\n", executable_name,
-                        strerror(errno));
-            return (1);
-        }
-        ctx->remaining -= 8;
-        ctx->cursor += 8;
-    }
-    u_int8_t padlen = ((char *)&block)[7];
-    if (padlen > 8) {
-        ft_sdprintf(1, "%s: des: invalid padding len of %u\n", executable_name,
-                    (unsigned int)padlen);
+    if (cipher_ctx.enc_mode == ENC_MODE_CBC ||
+        cipher_ctx.enc_mode == ENC_MODE_ECB ||
+        cipher_ctx.enc_mode == ENC_MODE_PCBC)
+        cipher_ctx.padlen = 8;
+    if (cipher_decrypt(&cipher_ctx))
         return (1);
-    }
-    if (write(ctx->fd_out, &block, 8 - padlen) < 0) {
-        ft_sdprintf(1, "%s: des: writing to file: %s\n", executable_name,
-                    strerror(errno));
-        return (1);
-    }
     return (0);
 }
 
@@ -511,12 +461,6 @@ static int derive_key(t_ctx *ctx) {
     ctx->opts.key.value = htobe64(*(u_int64_t *)dk);
     if (ctx->opts.iv.given == false)
         ctx->opts.iv.value = htobe64(*(((u_int64_t *)dk) + 1));
-    if (ctx->opts.print_key) {
-        ft_sdprintf(1, "salt=%lX\nkey=%lX\n", ctx->opts.salt.value,
-                    ctx->opts.key.value);
-        if (ctx->opts.enc_mode != ENC_MODE_ECB)
-            ft_sdprintf(1, "IV=%lX\n", ctx->opts.iv.value);
-    }
     return (0);
 }
 
@@ -534,6 +478,12 @@ int des(unsigned int nbr_arg, char **args, enum e_encryption_mode mode) {
         free_ctx(&context);
         return (1);
     }
+    if (context.opts.print_key) {
+        ft_sdprintf(1, "salt=%lX\nkey=%lX\n", context.opts.salt.value,
+                    context.opts.key.value);
+        if (context.opts.enc_mode != ENC_MODE_ECB)
+            ft_sdprintf(1, "IV=%lX\n", context.opts.iv.value);
+    }
     if (context.opts.mode == DES_MODE_ENCODE)
         ret = des_encode(&context);
     else
@@ -548,4 +498,16 @@ int des_ecb(unsigned int nbr_arg, char **args) {
 
 int des_cbc(unsigned int nbr_arg, char **args) {
     return (des(nbr_arg, args, ENC_MODE_CBC));
+}
+
+int des_pcbc(unsigned int nbr_arg, char **args) {
+    return (des(nbr_arg, args, ENC_MODE_PCBC));
+}
+
+int des_cfb(unsigned int nbr_arg, char **args) {
+    return (des(nbr_arg, args, ENC_MODE_CFB));
+}
+
+int des_ofb(unsigned int nbr_arg, char **args) {
+    return (des(nbr_arg, args, ENC_MODE_OFB));
 }

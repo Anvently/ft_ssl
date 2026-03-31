@@ -14,7 +14,10 @@ const struct s_algorithm algorithms[NBR_ALGORITHM] = {
     [BASE64] = {.func = base64, .name = "base64"},
     [DES] = {.func = des_cbc, .name = "des"},
     [DES_ECB] = {.func = des_ecb, .name = "des-ecb"},
-    [DES_CBC] = {.func = des_cbc, .name = "des-cbc"}};
+    [DES_CBC] = {.func = des_cbc, .name = "des-cbc"},
+    [DES_PCBC] = {.func = des_pcbc, .name = "des-pcbc"},
+    [DES_CFB] = {.func = des_cfb, .name = "des-cfb"},
+    [DES_OFB] = {.func = des_ofb, .name = "des-ofb"}};
 
 void print_commands() {
     ft_sdprintf(1, "Commands: ");

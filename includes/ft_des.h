@@ -49,4 +49,6 @@ struct s_options_des {
 typedef struct s_options_des t_options_des;
 int parse_des_args(unsigned int *nbr_arg, char **args, t_options_des *options);
 
+u_int64_t des_algo(u_int64_t block, u_int64_t keys[16]);
+
 #endif
