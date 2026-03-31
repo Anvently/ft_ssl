@@ -187,7 +187,7 @@ static int md5_file(const char *path, t_options_md5 *opts) {
 
     fd = open(path, O_RDONLY, 0);
     if (fd < 0 || read_file(fd, &vec)) {
-        ft_sdprintf(1, "%s: md5: %s: %s\n", executable_name, path,
+        ft_sdprintf(2, "%s: md5: %s: %s\n", executable_name, path,
                     strerror(errno));
         if (fd >= 0)
             close(fd);
@@ -206,7 +206,7 @@ static int md5_stdin(t_options_md5 *opts) {
 
     if (read_file(0, &vec)) {
         ft_vector_free((t_vector **)&vec);
-        ft_sdprintf(1, "%s: md5: stdin: %s\n", executable_name,
+        ft_sdprintf(2, "%s: md5: stdin: %s\n", executable_name,
                     strerror(errno));
         return (1);
     }

@@ -172,9 +172,9 @@ static int register_print_key(t_options_des *opts, char *arg) {
 
 static void print_options(t_options_des *opts) __attribute_maybe_unused__;
 static void print_options(t_options_des *opts) {
-    ft_sdprintf(1, "salt=%lx\nkey=%lx\niv=%lx\n", opts->salt.value,
+    ft_sdprintf(2, "salt=%lx\nkey=%lx\niv=%lx\n", opts->salt.value,
                 opts->key.value, opts->iv.value);
-    ft_sdprintf(1, "infile=%s\noutfile=%s\npass=%s\nmode=%d\n",
+    ft_sdprintf(2, "infile=%s\noutfile=%s\npass=%s\nmode=%d\n",
                 opts->input_file, opts->output_file, opts->password.value,
                 opts->mode);
 }
@@ -184,7 +184,7 @@ static int read_pass(t_options_des *opts) {
 
     pass = getpass("Password:");
     if (pass == NULL) {
-        ft_sdprintf(1, "%s: des: %s\n", executable_name, strerror(errno));
+        ft_sdprintf(2, "%s: des: %s\n", executable_name, strerror(errno));
         return (2);
     }
     if (ft_strlen(pass) > (MAX_PASSWORD_LEN - 1)) {

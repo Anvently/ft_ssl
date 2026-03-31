@@ -24,6 +24,7 @@ enum e_command {
 struct s_algorithm {
     const char *name;
     int (*func)(unsigned int, char **);
+    enum { ALGO_TYPE_OTHER, ALGO_TYPE_DIGEST, ALGO_TYPE_CIPHER } type;
 };
 
 enum e_encryption_mode {

@@ -16,7 +16,9 @@ static const t_options_des default_opts = {.mode = DES_MODE_ENCODE,
                                            .password.prompt = true,
                                            .hash_option = "sha256"};
 static const char *usage = "\
-usage: ./openssl base64 [flags]\n\
+usage: ./openssl des [flags]\n\
+\n\
+Mode of operations: des-cbc (default), des-ecb, des-pcbc, des-cfb, des-ofb\n\
 \n\
 Flags:\n\
   -a, --base64          decode/encode the input/output in base64, depending on the encrypt mode\n\
@@ -26,9 +28,9 @@ Flags:\n\
   -o, --output=path     file to read to\n\
   -k, --key=key         key in hex\n\
   -p, --input-pass      enable key/IV derivation from salt and given password\n\
-      --pass            input password from command line instead of stdin\n\
   -s, --salt            salt in hex\n\
   -v, --iv              initialization vector in hex\n\
+  -P, --print           show salt, key and IV used\n\
 \n ";
 
 typedef struct s_des_ctx {
@@ -184,7 +186,7 @@ static int input_base64_decode(int fd_in, int *new_fd_in) {
     int fds[2];
 
     if (pipe(fds)) {
-        ft_sdprintf(1, "%s: des: using pipe() to decode base64 input: %s\n",
+        ft_sdprintf(2, "%s: des: using pipe() to decode base64 input: %s\n",
                     executable_name, strerror(errno));
         return (1);
     }
@@ -205,7 +207,7 @@ static int output_base64_encode(t_ctx *ctx) {
     int fds[2];
 
     if (pipe(fds)) {
-        ft_sdprintf(1, "%s: des: using pipe() to decode base64 input: %s\n",
+        ft_sdprintf(2, "%s: des: using pipe() to decode base64 input: %s\n",
                     executable_name, strerror(errno));
         return (1);
     }
@@ -221,7 +223,7 @@ static int open_io(t_ctx *ctx) {
     if (ctx->opts.input_file) {
         fd_in = open(ctx->opts.input_file, O_RDONLY, 0);
         if (fd_in < 0) {
-            ft_sdprintf(1, "%s: des: opening file: %s\n", executable_name,
+            ft_sdprintf(2, "%s: des: opening file: %s\n", executable_name,
                         strerror(errno));
             return (1);
         }
@@ -235,7 +237,7 @@ static int open_io(t_ctx *ctx) {
         }
     }
     if (read_file(fd_in, &ctx->payload)) {
-        ft_sdprintf(1, "%s: des: reading file: %s\n", executable_name,
+        ft_sdprintf(2, "%s: des: reading file: %s\n", executable_name,
                     strerror(errno));
         if (fd_in != STDIN_FILENO)
             close(fd_in);
@@ -250,7 +252,7 @@ static int open_io(t_ctx *ctx) {
         ctx->fd_out =
             open(ctx->opts.output_file, O_RDWR | O_CREAT | O_TRUNC, 0644);
         if (ctx->fd_out < 0) {
-            ft_sdprintf(1, "%s: des: opening file: %s\n", executable_name,
+            ft_sdprintf(2, "%s: des: opening file: %s\n", executable_name,
                         strerror(errno));
             free_ctx(ctx);
             return (1);
@@ -266,8 +268,7 @@ static int open_io(t_ctx *ctx) {
     return (0);
 }
 
-static void generate_keys(u_int64_t keys[16], u_int64_t key,
-                          enum e_op_mode mode) {
+static void generate_keys(u_int64_t keys[16], u_int64_t key) {
     u_int32_t left, right;
     u_int64_t pkey = permute(key, pc1, sizeof(pc1)) >> 8; // 64 to 56 bits
 
@@ -278,13 +279,6 @@ static void generate_keys(u_int64_t keys[16], u_int64_t key,
         left = left_rotate28(left, shifts[i]);
         pkey = ((u_int64_t)left << 28) | right;               // 56 bits concat
         keys[i] = permute(pkey << 8, pc2, sizeof(pc2)) >> 16; // 56 to 48 bits
-    }
-    if (mode == DES_MODE_DECODE) { // reverse keys
-        for (unsigned int i = 0; i < 8; i++) {
-            pkey = keys[i];
-            keys[i] = keys[15 - i];
-            keys[15 - i] = pkey;
-        }
     }
 }
 /*
@@ -313,7 +307,7 @@ static u_int64_t mangler_function(u_int64_t right, u_int64_t key) {
     return (right);
 }
 
-u_int64_t des_algo(u_int64_t block, u_int64_t keys[16]) {
+static u_int64_t des_algo_encrypt(u_int64_t block, u_int64_t keys[16]) {
     u_int64_t left, right, tmp;
 
     block = htobe64(block); // Revert endianness (payload is big endian
@@ -335,6 +329,28 @@ u_int64_t des_algo(u_int64_t block, u_int64_t keys[16]) {
     return (block);
 }
 
+static u_int64_t des_algo_decrypt(u_int64_t block, u_int64_t keys[16]) {
+    u_int64_t left, right, tmp;
+
+    block = htobe64(block); // Revert endianness (payload is big endian
+                            // while uint64_t is little endian)
+
+    block = permute(block, ip, sizeof(ip)); // initial permutation
+    left = block >> 32;
+    right = block & 0xFFFFFFFF;
+    for (unsigned int i = 0; i < 16; i++) { // Feistel rounds
+        tmp = right;
+        // Feistel function
+        right = mangler_function(right, keys[15 - i]);
+        right ^= left;
+        left = tmp;
+    }
+    block = (right << 32) | left;
+    block = permute(block, fp, sizeof(fp));
+    block = htobe64(block); // Put block back to big endian
+    return (block);
+}
+
 /*
 
 be0b11010101 ^ le0b11010000
@@ -347,18 +363,19 @@ be0b11010101 ^ be0b00001101 = be0b10001101
 
 static int des_encode(t_ctx *ctx) {
     u_int64_t keys[16];
-    struct s_cipher_context cipher_ctx = {.data = keys,
-                                          .decrypt_fun = (t_fun_cipher)des_algo,
-                                          .encrypt_fun = (t_fun_cipher)des_algo,
-                                          .enc_mode = ctx->opts.enc_mode,
-                                          .fd_out = ctx->fd_out,
-                                          .iv = htobe64(ctx->opts.iv.value),
-                                          .name = "des",
-                                          .padlen = 0,
-                                          .payload = ctx->cursor,
-                                          .remaining = ctx->remaining};
+    struct s_cipher_context cipher_ctx = {
+        .data = keys,
+        .decrypt_fun = (t_fun_cipher)des_algo_decrypt,
+        .encrypt_fun = (t_fun_cipher)des_algo_encrypt,
+        .enc_mode = ctx->opts.enc_mode,
+        .fd_out = ctx->fd_out,
+        .iv = htobe64(ctx->opts.iv.value),
+        .name = "des",
+        .padlen = 0,
+        .payload = ctx->cursor,
+        .remaining = ctx->remaining};
 
-    generate_keys(keys, ctx->opts.key.value, DES_MODE_ENCODE);
+    generate_keys(keys, ctx->opts.key.value);
     if (cipher_ctx.enc_mode == ENC_MODE_CBC ||
         cipher_ctx.enc_mode == ENC_MODE_ECB ||
         cipher_ctx.enc_mode == ENC_MODE_PCBC)
@@ -376,18 +393,19 @@ static int des_encode(t_ctx *ctx) {
 
 static int des_decode(t_ctx *ctx) {
     u_int64_t keys[16];
-    struct s_cipher_context cipher_ctx = {.data = keys,
-                                          .decrypt_fun = (t_fun_cipher)des_algo,
-                                          .encrypt_fun = (t_fun_cipher)des_algo,
-                                          .enc_mode = ctx->opts.enc_mode,
-                                          .fd_out = ctx->fd_out,
-                                          .iv = htobe64(ctx->opts.iv.value),
-                                          .name = "des",
-                                          .padlen = 0,
-                                          .payload = ctx->cursor,
-                                          .remaining = ctx->remaining};
+    struct s_cipher_context cipher_ctx = {
+        .data = keys,
+        .decrypt_fun = (t_fun_cipher)des_algo_decrypt,
+        .encrypt_fun = (t_fun_cipher)des_algo_encrypt,
+        .enc_mode = ctx->opts.enc_mode,
+        .fd_out = ctx->fd_out,
+        .iv = htobe64(ctx->opts.iv.value),
+        .name = "des",
+        .padlen = 0,
+        .payload = ctx->cursor,
+        .remaining = ctx->remaining};
 
-    generate_keys(keys, ctx->opts.key.value, DES_MODE_DECODE);
+    generate_keys(keys, ctx->opts.key.value);
     if (cipher_ctx.enc_mode == ENC_MODE_CBC ||
         cipher_ctx.enc_mode == ENC_MODE_ECB ||
         cipher_ctx.enc_mode == ENC_MODE_PCBC)
@@ -403,7 +421,7 @@ static int write_salt(int fd, u_int64_t salt) {
     salt = htobe64(salt);
     ((u_int64_t *)buff)[1] = salt;
     if (write(fd, &buff[0], sizeof(buff)) < 0) {
-        ft_sdprintf(1, "%s: des: writing salt: %s\n", executable_name,
+        ft_sdprintf(2, "%s: des: writing salt: %s\n", executable_name,
                     strerror(errno));
         return (1);
     }
@@ -413,12 +431,12 @@ static int write_salt(int fd, u_int64_t salt) {
 static int read_salt(const char *payload, size_t payload_len, u_int64_t *salt) {
 
     if (payload_len < 16) {
-        ft_sdprintf(1, "%s: des: reading salt: invalid salt len\n",
+        ft_sdprintf(2, "%s: des: reading salt: invalid salt len\n",
                     executable_name);
         return (1);
     }
     if (ft_strncmp(payload, "Salted__", 8) != 0) {
-        ft_sdprintf(1, "%s: des: reading salt: invalid salt header\n",
+        ft_sdprintf(2, "%s: des: reading salt: invalid salt header\n",
                     executable_name);
         return (1);
     }
@@ -453,7 +471,7 @@ static int derive_key(t_ctx *ctx) {
         .salt = htobe64(ctx->opts.salt.value),
         .dk_out = dk};
     if (args.hash_opts == NULL) {
-        ft_sdprintf(1, "%s: des: %s: invalid hash option\n", executable_name,
+        ft_sdprintf(2, "%s: des: %s: invalid hash option\n", executable_name,
                     ctx->opts.hash_option);
         return (1);
     }
@@ -479,10 +497,10 @@ int des(unsigned int nbr_arg, char **args, enum e_encryption_mode mode) {
         return (1);
     }
     if (context.opts.print_key) {
-        ft_sdprintf(1, "salt=%lX\nkey=%lX\n", context.opts.salt.value,
+        ft_sdprintf(2, "salt=%lX\nkey=%lX\n", context.opts.salt.value,
                     context.opts.key.value);
         if (context.opts.enc_mode != ENC_MODE_ECB)
-            ft_sdprintf(1, "IV=%lX\n", context.opts.iv.value);
+            ft_sdprintf(2, "IV=%lX\n", context.opts.iv.value);
     }
     if (context.opts.mode == DES_MODE_ENCODE)
         ret = des_encode(&context);

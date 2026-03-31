@@ -7,28 +7,48 @@ usage: ./openssl command [...]\n\
 const char *executable_name = "ft_ssl";
 
 const struct s_algorithm algorithms[NBR_ALGORITHM] = {
-    [MD5] = {.func = md5, .name = "md5"},
-    [SHA256] = {.func = sha256, .name = "sha256"},
-    [SHA224] = {.func = sha224, .name = "sha224"},
-    [SHA512] = {.func = sha512, .name = "sha512"},
-    [BASE64] = {.func = base64, .name = "base64"},
-    [DES] = {.func = des_cbc, .name = "des"},
-    [DES_ECB] = {.func = des_ecb, .name = "des-ecb"},
-    [DES_CBC] = {.func = des_cbc, .name = "des-cbc"},
-    [DES_PCBC] = {.func = des_pcbc, .name = "des-pcbc"},
-    [DES_CFB] = {.func = des_cfb, .name = "des-cfb"},
-    [DES_OFB] = {.func = des_ofb, .name = "des-ofb"}};
+    [MD5] = {.func = md5, .name = "md5", .type = ALGO_TYPE_DIGEST},
+    [SHA256] = {.func = sha256, .name = "sha256", .type = ALGO_TYPE_DIGEST},
+    [SHA224] = {.func = sha224, .name = "sha224", .type = ALGO_TYPE_DIGEST},
+    [SHA512] = {.func = sha512, .name = "sha512", .type = ALGO_TYPE_DIGEST},
+    [BASE64] = {.func = base64, .name = "base64", .type = ALGO_TYPE_OTHER},
+    [DES] = {.func = des_cbc, .name = "des", .type = ALGO_TYPE_CIPHER},
+    [DES_ECB] = {.func = des_ecb, .name = "des-ecb", .type = ALGO_TYPE_CIPHER},
+    [DES_CBC] = {.func = des_cbc, .name = "des-cbc", .type = ALGO_TYPE_CIPHER},
+    [DES_PCBC] = {.func = des_pcbc,
+                  .name = "des-pcbc",
+                  .type = ALGO_TYPE_CIPHER},
+    [DES_CFB] = {.func = des_cfb, .name = "des-cfb", .type = ALGO_TYPE_CIPHER},
+    [DES_OFB] = {.func = des_ofb, .name = "des-ofb", .type = ALGO_TYPE_CIPHER}};
 
 void print_commands() {
-    ft_sdprintf(1, "Commands: ");
+    int count = 0;
+
+    ft_sdprintf(2, "COMMANDS\nDigests: ");
     for (unsigned int i = 0; i < NBR_ALGORITHM; i++) {
-        ft_sdprintf(1, "%s%s", i == 0 ? "" : ", ", algorithms[i].name);
+        if (algorithms[i].type != ALGO_TYPE_DIGEST)
+            continue;
+        ft_sdprintf(2, "%s%s", count++ == 0 ? "" : ", ", algorithms[i].name);
     }
-    ft_sdprintf(1, "\n");
+    ft_sdprintf(2, "\nCiphers: ");
+    count = 0;
+    for (unsigned int i = 0; i < NBR_ALGORITHM; i++) {
+        if (algorithms[i].type != ALGO_TYPE_CIPHER)
+            continue;
+        ft_sdprintf(2, "%s%s", count++ == 0 ? "" : ", ", algorithms[i].name);
+    }
+    ft_sdprintf(2, "\nOthers: ");
+    count = 0;
+    for (unsigned int i = 0; i < NBR_ALGORITHM; i++) {
+        if (algorithms[i].type != ALGO_TYPE_OTHER)
+            continue;
+        ft_sdprintf(2, "%s%s", count++ == 0 ? "" : ", ", algorithms[i].name);
+    }
+    ft_sdprintf(2, "\n");
 }
 
 void error_usage() {
-    ft_sdprintf(1, "%s", usage);
+    ft_sdprintf(2, "%s", usage);
     print_commands();
     exit(2);
 }

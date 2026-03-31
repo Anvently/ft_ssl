@@ -151,7 +151,7 @@ static int sha224_file(const char *path, t_options_sha224 *opts) {
 
     fd = open(path, O_RDONLY, 0);
     if (fd < 0 || read_file(fd, &vec)) {
-        ft_sdprintf(1, "%s: sha224: %s: %s\n", executable_name, path,
+        ft_sdprintf(2, "%s: sha224: %s: %s\n", executable_name, path,
                     strerror(errno));
         if (fd >= 0)
             close(fd);
@@ -170,7 +170,7 @@ static int sha224_stdin(t_options_sha224 *opts) {
 
     if (read_file(0, &vec)) {
         ft_vector_free((t_vector **)&vec);
-        ft_sdprintf(1, "%s: sha256: stdin: %s\n", executable_name,
+        ft_sdprintf(2, "%s: sha224: stdin: %s\n", executable_name,
                     strerror(errno));
         return (1);
     }

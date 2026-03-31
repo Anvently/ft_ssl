@@ -43,13 +43,13 @@ static int open_io(t_ctx *ctx) {
     if (ctx->opts.input_file) {
         fd = open(ctx->opts.input_file, O_RDONLY, 0);
         if (fd < 0) {
-            ft_sdprintf(1, "%s: base64: opening file: %s\n", executable_name,
+            ft_sdprintf(2, "%s: base64: opening file: %s\n", executable_name,
                         strerror(errno));
             return (1);
         }
     }
     if (read_file(fd, &ctx->payload)) {
-        ft_sdprintf(1, "%s: base64: reading file: %s\n", executable_name,
+        ft_sdprintf(2, "%s: base64: reading file: %s\n", executable_name,
                     strerror(errno));
         return (1);
     }
@@ -57,7 +57,7 @@ static int open_io(t_ctx *ctx) {
         ctx->fd_out =
             open(ctx->opts.output_file, O_RDWR | O_CREAT | O_TRUNC, 0644);
         if (ctx->fd_out < 0) {
-            ft_sdprintf(1, "%s: base64: opening file: %s\n", executable_name,
+            ft_sdprintf(2, "%s: base64: opening file: %s\n", executable_name,
                         strerror(errno));
             free_ctx(ctx);
             return (1);
@@ -169,7 +169,7 @@ static int base64_encode(t_ctx *ctx) {
     while (payload_size >= 3) {
         encode_chunk(payload, 3, out);
         if (print_character_64(ctx->fd_out, out, 4)) {
-            ft_sdprintf(1, "%s: base64: writing to file: %s\n", executable_name,
+            ft_sdprintf(2, "%s: base64: writing to file: %s\n", executable_name,
                         strerror(errno));
             return (1);
         }
@@ -179,7 +179,7 @@ static int base64_encode(t_ctx *ctx) {
     if (payload_size) {
         encode_chunk(payload, payload_size, out);
         if (print_character_64(ctx->fd_out, out, 4)) {
-            ft_sdprintf(1, "%s: base64: writing to file: %s\n", executable_name,
+            ft_sdprintf(2, "%s: base64: writing to file: %s\n", executable_name,
                         strerror(errno));
             return (1);
         }
@@ -202,11 +202,11 @@ static int base64_decode(t_ctx *ctx) {
         if (i == payload_size)
             break;
         if ((len_out = decode_chunk(payload + i, out)) < 0) {
-            ft_sdprintf(1, "%s: base64: invalid input\n", executable_name);
+            ft_sdprintf(2, "%s: base64: invalid input\n", executable_name);
             return (1);
         }
         if (write(ctx->fd_out, out, len_out) < 0) {
-            ft_sdprintf(1, "%s: base64: writing to file: %s\n", executable_name,
+            ft_sdprintf(2, "%s: base64: writing to file: %s\n", executable_name,
                         strerror(errno));
             return (1);
         }
