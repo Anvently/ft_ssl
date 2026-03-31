@@ -66,7 +66,8 @@ static int open_io(t_ctx *ctx) {
     return (0);
 }
 
-static void encode_chunk(const char chunk[3], size_t chunk_len, char out[4]) {
+static void encode_chunk(const unsigned char chunk[3], size_t chunk_len,
+                         char out[4]) {
     ft_memcpy(out, &(char[4]){0, 0, '=', '='}, 4);
     switch (chunk_len) {
     case 1:
@@ -110,7 +111,7 @@ N           D            U             4            C            g  = =         
 */
 // clang-format on
 
-static int decode_chunk(const char payload[4], char out[3]) {
+static int decode_chunk(const char payload[4], unsigned char out[3]) {
     u_int8_t chunk[4] = {base64idx(payload[0]), base64idx(payload[1]),
                          base64idx(payload[2]), base64idx(payload[3])};
 
@@ -161,7 +162,7 @@ static int decode_chunk(const char payload[4], char out[3]) {
 
 static int base64_encode(t_ctx *ctx) {
 
-    const char *payload = ctx->payload;
+    const unsigned char *payload = (const unsigned char *)ctx->payload;
     size_t payload_size = ft_vector_size(ctx->payload) - 1;
     char out[4];
 
@@ -191,7 +192,7 @@ static int base64_decode(t_ctx *ctx) {
 
     const char *payload = ctx->payload;
     size_t payload_size = ft_vector_size(ctx->payload) - 1;
-    char out[3];
+    unsigned char out[3];
     int len_out;
 
     for (size_t i = 0; i < payload_size; i += 4) {

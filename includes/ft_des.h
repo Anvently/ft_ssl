@@ -20,8 +20,6 @@ enum e_options_des {
     OPT_NBR
 };
 
-enum e_encryption_mode { ENC_MODE_ECB = 0, ENC_MODE_CBC = 1 };
-
 struct s_options_des {
     bool base64;
     enum e_op_mode { DES_MODE_ENCODE, DES_MODE_DECODE } mode;

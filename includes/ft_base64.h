@@ -2,6 +2,7 @@
 #define FT_BASE64_H
 
 #include <ft_openssl.h>
+#include <ft_openssl_utils.h>
 
 enum e_options_base64 {
     OPT_DECODE,

@@ -23,6 +23,8 @@ struct s_algorithm {
     int (*func)(unsigned int, char **);
 };
 
+enum e_encryption_mode { ENC_MODE_ECB = 0, ENC_MODE_CBC = 1 };
+
 int interactive_mode();
 void print_commands();
 

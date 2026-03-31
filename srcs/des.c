@@ -187,16 +187,16 @@ static int input_base64_decode(int fd_in, int *new_fd_in) {
                     executable_name, strerror(errno));
         return (1);
     }
-    if (base64_fds(fd_in, fds[0], BASE64_MODE_DECODE)) {
+    if (base64_fds(fd_in, fds[1], BASE64_MODE_DECODE)) {
         close(fds[0]);
         close(fds[1]);
         return (1);
     }
-    close(fds[0]);
+    close(fds[1]);
     if (fd_in >= STDIN_FILENO)
         close(fd_in);
     close(fd_in);
-    *new_fd_in = fds[1];
+    *new_fd_in = fds[0];
     return (0);
 }
 
@@ -209,8 +209,8 @@ static int output_base64_encode(t_ctx *ctx) {
         return (1);
     }
     ctx->fd_out_base64 = ctx->fd_out;
-    ctx->fd_in_base64 = fds[1];
-    ctx->fd_out = fds[0];
+    ctx->fd_in_base64 = fds[0];
+    ctx->fd_out = fds[1];
     return (0);
 }
 
@@ -257,9 +257,10 @@ static int open_io(t_ctx *ctx) {
     }
     if (ctx->opts.base64 &&
         ctx->opts.mode == DES_MODE_ENCODE) { // Encode cipher to base64
-        if (output_base64_encode(ctx))
+        if (output_base64_encode(ctx)) {
             free_ctx(ctx);
-        return (1);
+            return (1);
+        }
     }
     return (0);
 }
@@ -311,14 +312,12 @@ static u_int64_t mangler_function(u_int64_t right, u_int64_t key) {
     return (right);
 }
 
-static u_int64_t des_encode_decode_block(u_int64_t padded_payload,
-                                         u_int64_t keys[16], u_int64_t *iv) {
+static u_int64_t des_ecb_encode_decode_block(u_int64_t padded_payload,
+                                             u_int64_t keys[16]) {
     u_int64_t block, left, right, tmp;
 
     block = htobe64(padded_payload); // Revert endianness (payload is big endian
                                      // while uint64_t is little endian)
-    if (iv)
-        block ^= *iv;
     block = permute(block, ip, sizeof(ip)); // initial permutation
     left = block >> 32;
     right = block & 0xFFFFFFFF;
@@ -331,22 +330,66 @@ static u_int64_t des_encode_decode_block(u_int64_t padded_payload,
     }
     block = (right << 32) | left;
     block = permute(block, fp, sizeof(fp));
-    if (iv)
-        *iv = block;
     block = htobe64(block); // Put block back to big endian
     return (block);
+}
+
+static u_int64_t des_cbc_encode_decode_block(u_int64_t padded_payload,
+                                             u_int64_t keys[16],
+                                             u_int64_t *iv_ptr,
+                                             enum e_op_mode mode) {
+    u_int64_t block, left, right, tmp;
+    u_int64_t iv = *iv_ptr;
+
+    block = htobe64(padded_payload); // Revert endianness (payload is big endian
+                                     // while uint64_t is little endian)
+
+    if (mode == DES_MODE_ENCODE)
+        block ^= iv;
+    else
+        *iv_ptr = block;
+    block = permute(block, ip, sizeof(ip)); // initial permutation
+    left = block >> 32;
+    right = block & 0xFFFFFFFF;
+    for (unsigned int i = 0; i < 16; i++) { // Feistel rounds
+        tmp = right;
+        // Feistel function
+        right = mangler_function(right, keys[i]);
+        right ^= left;
+        left = tmp;
+    }
+    block = (right << 32) | left;
+    block = permute(block, fp, sizeof(fp));
+    if (mode == DES_MODE_ENCODE)
+        *iv_ptr = block;
+    else
+        block ^= iv;
+    block = htobe64(block); // Put block back to big endian
+    return (block);
+}
+
+static u_int64_t des_encode_decode_block(t_ctx *ctx, u_int64_t block,
+                                         u_int64_t keys[16]) {
+    switch (ctx->opts.enc_mode) {
+    case ENC_MODE_CBC:
+        return (des_cbc_encode_decode_block(block, keys, &ctx->opts.iv.value,
+                                            ctx->opts.mode));
+
+    case ENC_MODE_ECB:
+        return (des_ecb_encode_decode_block(block, keys));
+        break;
+    }
+    return (0);
 }
 
 static int des_encode(t_ctx *ctx) {
     u_int64_t keys[16];
     u_int64_t block;
-    u_int64_t *iv =
-        ctx->opts.enc_mode != ENC_MODE_ECB ? &ctx->opts.iv.value : NULL;
 
     generate_keys(keys, ctx->opts.key.value, DES_MODE_ENCODE);
     while (ctx->remaining >= 8) {
         ft_memcpy(&block, ctx->cursor, 8);
-        block = des_encode_decode_block(block, keys, iv);
+        block = des_encode_decode_block(ctx, block, keys);
         if (write(ctx->fd_out, &block, 8) < 0) {
             ft_sdprintf(1, "%s: des: writing to file: %s\n", executable_name,
                         strerror(errno));
@@ -357,13 +400,14 @@ static int des_encode(t_ctx *ctx) {
     }
     ft_memset(&block, (char)(8 - ctx->remaining), 8); // Padd
     ft_memcpy(&block, ctx->cursor, ctx->remaining);
-    block = des_encode_decode_block(block, keys, iv);
+    block = des_encode_decode_block(ctx, block, keys);
     if (write(ctx->fd_out, &block, 8) < 0) {
         ft_sdprintf(1, "%s: des: writing to file: %s\n", executable_name,
                     strerror(errno));
         return (1);
     }
     if (ctx->opts.base64) {
+        close(ctx->fd_out);
         if (base64_fds(ctx->fd_in_base64, ctx->fd_out_base64,
                        BASE64_MODE_ENCODE))
             return (1);
@@ -374,13 +418,11 @@ static int des_encode(t_ctx *ctx) {
 static int des_decode(t_ctx *ctx) {
     u_int64_t keys[16];
     u_int64_t block;
-    u_int64_t *iv =
-        ctx->opts.enc_mode != ENC_MODE_ECB ? &ctx->opts.iv.value : NULL;
 
     generate_keys(keys, ctx->opts.key.value, DES_MODE_DECODE);
     while (ctx->remaining > 0) {
         ft_memcpy(&block, ctx->cursor, 8);
-        block = des_encode_decode_block(block, keys, iv);
+        block = des_encode_decode_block(ctx, block, keys);
         if (ctx->remaining <= 8) // Dont print last block because of padding
             break;
         if (write(ctx->fd_out, &block, 8) < 0) {
@@ -391,7 +433,7 @@ static int des_decode(t_ctx *ctx) {
         ctx->remaining -= 8;
         ctx->cursor += 8;
     }
-    char padlen = ((char *)&block)[7];
+    u_int8_t padlen = ((char *)&block)[7];
     if (padlen > 8) {
         ft_sdprintf(1, "%s: des: invalid padding len of %u\n", executable_name,
                     (unsigned int)padlen);
