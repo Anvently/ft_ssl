@@ -48,8 +48,8 @@ static u_int64_t des3_algo_encrypt(u_int64_t block, u_int64_t keys[3][16]) {
 }
 
 static u_int64_t des3_algo_decrypt(u_int64_t block, u_int64_t keys[3][16]) {
-    block = des_algo_decrypt(block, keys[1]);
-    block = des_algo_encrypt(block, keys[0]);
+    block = des_algo_decrypt(block, keys[0]);
+    block = des_algo_encrypt(block, keys[1]);
     block = des_algo_decrypt(block, keys[2]);
     return (block);
 }
