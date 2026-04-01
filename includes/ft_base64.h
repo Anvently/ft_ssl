@@ -13,7 +13,7 @@ enum e_options_base64 {
 };
 
 struct s_options_base64 {
-    enum e_base64_mode mode;
+    enum e_op_mode mode;
     const char *input_file;
     const char *output_file;
 };
@@ -21,5 +21,6 @@ struct s_options_base64 {
 typedef struct s_options_base64 t_options_base64;
 int parse_base64_args(unsigned int *nbr_arg, char **args,
                       t_options_base64 *options);
+int base64_fds(int fd_in, int fd_out, enum e_op_mode mode);
 
 #endif

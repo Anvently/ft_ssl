@@ -23,7 +23,7 @@ enum e_options_des {
 struct s_options_des {
     bool des3;
     bool base64;
-    enum e_op_mode { DES_MODE_ENCODE, DES_MODE_DECODE } mode;
+    enum e_op_mode mode;
     const char *input_file;
     const char *output_file;
     struct {
@@ -32,8 +32,8 @@ struct s_options_des {
     } password;
     struct {
         union {
-            u_int64_t des;
-            char des3[3 * sizeof(u_int64_t)];
+            u_int64_t des;                             // Little-endian
+            unsigned char des3[3 * sizeof(u_int64_t)]; // Big-endian
         } value;
         bool given;
     } key;
@@ -53,6 +53,8 @@ struct s_options_des {
 typedef struct s_options_des t_options_des;
 int parse_des_args(unsigned int *nbr_arg, char **args, t_options_des *options);
 
-u_int64_t des_algo(u_int64_t block, u_int64_t keys[16]);
+void des_gen_keys(u_int64_t keys[16], u_int64_t key);
+u_int64_t des_algo_encrypt(u_int64_t block, u_int64_t keys[16]);
+u_int64_t des_algo_decrypt(u_int64_t block, u_int64_t keys[16]);
 
 #endif

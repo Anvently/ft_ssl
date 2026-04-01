@@ -28,12 +28,12 @@ static t_opt_flag options_list[OPT_NBR] = {
 
 static int register_encode(t_options_base64 *opts, char *arg) {
     (void)arg;
-    opts->mode = BASE64_MODE_ENCODE;
+    opts->mode = OP_MODE_ENCODE;
     return (0);
 }
 static int register_decode(t_options_base64 *opts, char *arg) {
     (void)arg;
-    opts->mode = BASE64_MODE_DECODE;
+    opts->mode = OP_MODE_DECODE;
     return (0);
 }
 static int register_input_file(t_options_base64 *opts, char *arg) {

@@ -1,6 +1,24 @@
 #ifndef FT_OPENSSL_UTILS_H
 #define FT_OPENSSL_UTILS_H
+#include <ft_openssl.h>
 #include <libft.h>
+
+struct s_io_context {
+    const char *input_file;
+    const char *output_file;
+    int fd_in;
+    int fd_out;
+    int fd_in_base64;
+    int fd_out_base64;
+    char *payload;
+    const char *cursor;
+    size_t payload_len;
+    size_t remaining;
+    struct {
+        bool base64;
+        enum e_op_mode mode;
+    } options;
+};
 
 #define REVERT_ENDIANESS_32(n)                                                 \
     (((u_int32_t)((u_int8_t *)&(n))[0] << 24) |                                \
@@ -36,7 +54,9 @@ void print_bits_be(char *data, unsigned int size, bool newline);
 
 u_int64_t random_u64(void);
 
-enum e_base64_mode { BASE64_MODE_ENCODE, BASE64_MODE_DECODE };
-int base64_fds(int fd_in, int fd_out, enum e_base64_mode mode);
+void io_free(struct s_io_context *ctx);
+int io_open(struct s_io_context *ctx);
+int io_base64_encode(struct s_io_context *ctx);
+int io_base64_decode(struct s_io_context *ctx);
 
 #endif

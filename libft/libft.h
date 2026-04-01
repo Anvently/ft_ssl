@@ -145,6 +145,10 @@ size_t ft_putunbr_buffer(unsigned long nbr, char *buffer, size_t size);
 size_t ft_putnbr_buffer(long nbr, char *buffer, size_t size);
 size_t ft_putunbr_base_buffer(unsigned long nbr, char *buffer, size_t size,
                               const char *base);
+int ft_hex_decode(const char *str, u_int8_t *out, size_t *out_size,
+                  bool leftpad);
+int16_t ft_hex2bin(char c);
+void ft_bin2hex(u_int8_t value, char out[2]);
 
 ///------------------------ ITERATION ---------------------------
 

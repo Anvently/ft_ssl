@@ -65,12 +65,12 @@ static t_opt_flag options_list[OPT_NBR] = {
 
 static int register_encode(t_options_des *opts, char *arg) {
     (void)arg;
-    opts->mode = DES_MODE_ENCODE;
+    opts->mode = OP_MODE_ENCODE;
     return (0);
 }
 static int register_decode(t_options_des *opts, char *arg) {
     (void)arg;
-    opts->mode = DES_MODE_DECODE;
+    opts->mode = OP_MODE_DECODE;
     return (0);
 }
 static int register_input_file(t_options_des *opts, char *arg) {
@@ -96,28 +96,42 @@ u_int64_t padd_left_u64_hex(u_int64_t n) {
     return (n);
 }
 static int register_key_des3(t_options_des *opts, char *arg) {
-    (void)opts;
-    (void)arg;
+    size_t size = sizeof(opts->key.value.des3);
+
+    switch (ft_hex_decode(arg, opts->key.value.des3, &size, false)) {
+    case 0:
+        break;
+    default:
+    case 1:
+        ft_options_err("key", "format error");
+        return (2);
+    case 2:
+        ft_options_err("key", "overflow error");
+        return (2);
+    }
+    opts->key.given = true;
     return (0);
 }
 
 static int register_key(t_options_des *opts, char *arg) {
-    u_int64_t value;
-    const char *ptr = arg;
+    unsigned char value[8] = {0};
+    size_t size = sizeof(value);
 
     if (opts->des3)
         return (register_key_des3(opts, arg));
-    switch (ft_strtoul_hex(arg, &value, &ptr)) {
-    default:
+
+    switch (ft_hex_decode(arg, value, &size, false)) {
+    case 0:
         break;
+    default:
     case 1:
-        ft_options_err("key", "overflow error");
-        return (2);
-    case 2:
         ft_options_err("key", "format error");
         return (2);
+    case 2:
+        ft_options_err("key", "overflow error");
+        return (2);
     }
-    opts->key.value.des = padd_left_u64_hex(value);
+    opts->key.value.des = htobe64(*(u_int64_t *)value); // store key in LE
     opts->key.given = true;
     return (0);
 }
@@ -181,7 +195,7 @@ static int register_print_key(t_options_des *opts, char *arg) {
 static void print_options(t_options_des *opts) __attribute_maybe_unused__;
 static void print_options(t_options_des *opts) {
     ft_sdprintf(2, "salt=%lx\nkey=%lx\niv=%lx\n", opts->salt.value,
-                opts->key.value, opts->iv.value);
+                opts->key.value.des, opts->iv.value);
     ft_sdprintf(2, "infile=%s\noutfile=%s\npass=%s\nmode=%d\n",
                 opts->input_file, opts->output_file, opts->password.value,
                 opts->mode);

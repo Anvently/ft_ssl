@@ -7,7 +7,7 @@
 extern const char *executable_name;
 
 static const t_options_base64 default_opts = {
-    .mode = BASE64_MODE_ENCODE, .input_file = NULL, .output_file = NULL};
+    .mode = OP_MODE_ENCODE, .input_file = NULL, .output_file = NULL};
 static const char *usage = "\
 usage: ./openssl base64 [flags]\n\
 \n\
@@ -215,7 +215,7 @@ static int base64_decode(t_ctx *ctx) {
     return (0);
 }
 
-int base64_fds(int fd_in, int fd_out, enum e_base64_mode mode) {
+int base64_fds(int fd_in, int fd_out, enum e_op_mode mode) {
     t_ctx context = {.opts = default_opts,
                      .payload = NULL,
                      .fd_out = fd_out,
@@ -225,7 +225,7 @@ int base64_fds(int fd_in, int fd_out, enum e_base64_mode mode) {
     context.opts.mode = mode;
     if (open_io(&context))
         return (1);
-    if (context.opts.mode == BASE64_MODE_ENCODE)
+    if (context.opts.mode == OP_MODE_ENCODE)
         ret = base64_encode(&context);
     else
         ret = base64_decode(&context);
@@ -244,7 +244,7 @@ int base64(unsigned int nbr_arg, char **args) {
         error(2, 0, "%s", usage);
     if (open_io(&context))
         return (1);
-    if (context.opts.mode == BASE64_MODE_ENCODE)
+    if (context.opts.mode == OP_MODE_ENCODE)
         ret = base64_encode(&context);
     else
         ret = base64_decode(&context);

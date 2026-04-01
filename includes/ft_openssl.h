@@ -41,6 +41,8 @@ enum e_encryption_mode {
     ENC_MODE_OFB,
 };
 
+enum e_op_mode { OP_MODE_ENCODE, OP_MODE_DECODE };
+
 int interactive_mode();
 void print_commands();
 
