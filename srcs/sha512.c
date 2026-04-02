@@ -148,23 +148,25 @@ void hash_buff_sha512(const char *str, size_t len, u_int64_t digest[8]) {
 static void print_hash(u_int64_t digest[8], const char *name, bool quote,
                        t_options_sha512 *opts) {
     if (name == NULL)
-        ft_sdprintf(1, "%lx%lx%lx%lx%lx%lx%lx%lx", digest[0], digest[1],
-                    digest[2], digest[3], digest[4], digest[5], digest[6],
-                    digest[7]);
+        ft_dprintf(1, "%016lx%016lx%016lx%016lx%016lx%016lx%016lx%016lx",
+                   digest[0], digest[1], digest[2], digest[3], digest[4],
+                   digest[5], digest[6], digest[7]);
     else if (opts->quiet == true)
-        ft_sdprintf(1, "%lx%lx%lx%lx%lx%lx%lx%lx\n", digest[0], digest[1],
-                    digest[2], digest[3], digest[4], digest[5], digest[6],
-                    digest[7]);
+        ft_dprintf(1, "%016lx%016lx%016lx%016lx%016lx%016lx%016lx%016lx\n",
+                   digest[0], digest[1], digest[2], digest[3], digest[4],
+                   digest[5], digest[6], digest[7]);
     else if (opts->reverse == false)
-        ft_sdprintf(1, "SHA512(%c%s%c)= %lx%lx%lx%lx%lx%lx%lx%lx\n",
-                    quote ? '"' : 0, name, quote ? '"' : 0, digest[0],
-                    digest[1], digest[2], digest[3], digest[4], digest[5],
-                    digest[6], digest[7]);
+        ft_dprintf(1,
+                   "SHA512(%c%s%c)= "
+                   "%016lx%016lx%016lx%016lx%016lx%016lx%016lx%016lx\n",
+                   quote ? '"' : 0, name, quote ? '"' : 0, digest[0], digest[1],
+                   digest[2], digest[3], digest[4], digest[5], digest[6],
+                   digest[7]);
     else
-        ft_sdprintf(1, "%lx%lx%lx%lx%lx%lx%lx%lx %c%s%c\n", digest[0],
-                    digest[1], digest[2], digest[3], digest[4], digest[5],
-                    digest[6], digest[7], quote ? '"' : 0, name,
-                    quote ? '"' : 0);
+        ft_dprintf(
+            1, "%016lx%016lx%016lx%016lx%016lx%016lx%016lx%016lx %c%s%c\n",
+            digest[0], digest[1], digest[2], digest[3], digest[4], digest[5],
+            digest[6], digest[7], quote ? '"' : 0, name, quote ? '"' : 0);
 }
 
 static void sha224_string(const char *str, t_options_sha512 *opts) {

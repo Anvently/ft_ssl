@@ -129,19 +129,23 @@ void hash_buff_sha256(const char *str, size_t len, u_int32_t digest[8]) {
 static void print_hash(u_int32_t digest[8], const char *name, bool quote,
                        t_options_sha256 *opts) {
     if (name == NULL)
-        ft_sdprintf(1, "%x%x%x%x%x%x%x%x", digest[0], digest[1], digest[2],
-                    digest[3], digest[4], digest[5], digest[6], digest[7]);
+        ft_dprintf(1, "%08x%08x%08x%08x%08x%08x%08x%08x", digest[0], digest[1],
+                   digest[2], digest[3], digest[4], digest[5], digest[6],
+                   digest[7]);
     else if (opts->quiet == true)
-        ft_sdprintf(1, "%x%x%x%x%x%x%x%x\n", digest[0], digest[1], digest[2],
-                    digest[3], digest[4], digest[5], digest[6], digest[7]);
+        ft_dprintf(1, "%08x%08x%08x%08x%08x%08x%08x%08x\n", digest[0],
+                   digest[1], digest[2], digest[3], digest[4], digest[5],
+                   digest[6], digest[7]);
     else if (opts->reverse == false)
-        ft_sdprintf(1, "SHA256(%c%s%c)= %x%x%x%x%x%x%x%x\n", quote ? '"' : 0,
-                    name, quote ? '"' : 0, digest[0], digest[1], digest[2],
-                    digest[3], digest[4], digest[5], digest[6], digest[7]);
+        ft_dprintf(1, "SHA256(%c%s%c)= %08x%08x%08x%08x%08x%08x%08x%08x\n",
+                   quote ? '"' : 0, name, quote ? '"' : 0, digest[0], digest[1],
+                   digest[2], digest[3], digest[4], digest[5], digest[6],
+                   digest[7]);
     else
-        ft_sdprintf(1, "%x%x%x%x%x%x%x%x %c%s%c\n", digest[0], digest[1],
-                    digest[2], digest[3], digest[4], digest[5], digest[6],
-                    digest[7], quote ? '"' : 0, name, quote ? '"' : 0);
+        ft_dprintf(1, "%08x%08x%08x%08x%08x%08x%08x%08x %c%s%c\n", digest[0],
+                   digest[1], digest[2], digest[3], digest[4], digest[5],
+                   digest[6], digest[7], quote ? '"' : 0, name,
+                   quote ? '"' : 0);
 }
 
 static void sha256_string(const char *str, t_options_sha256 *opts) {
