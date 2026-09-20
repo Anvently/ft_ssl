@@ -6,13 +6,17 @@ ft_ssl is a C implementation of a small set of cryptographic primitives inspired
 
 The purpose is not to replace OpenSSL in production environments. The implementation is intentionally limited and follows a teaching-oriented approach rather than matching the breadth, robustness, and compatibility guarantees of the official OpenSSL toolchain.
 
-The program does, however, emulate legacy OpenSSL-compatible behavior when used with the appropriate flags. For example, the DES-based encryption flow can be compared with the following OpenSSL invocation:
+The program does, however, emulate legacy OpenSSL-compatible behavior when used with the appropriate flags.
+The version of OpenSSL used as reference is the v1.1.0 was obsoleted in 2019, and modern versions do not share the same encryption flow.
+
+The encryption flow used by ft_ssl can be compared to moderm OpenSSL with the following flag invocation:
 
 ```bash
 openssl enc -des-ecb -provider legacy
 ```
 
-This indicates that the project is targeted at historical, legacy cryptographic behavior, not modern secure defaults.
+Otherwise, a docker image building OpenSSL v1.1.0 is provided in a dedicated Dockerfile.
+
 
 ## 2. Scope of the implementation
 
